@@ -19,6 +19,7 @@ endif()
 
 # Core library: domain models and simulation logic.
 add_library(orchestrix_core
+    src/ResourceRequirements.cpp
     src/Job.cpp
     src/Server.cpp
     src/DataCenter.cpp
@@ -37,10 +38,18 @@ target_link_libraries(orchestrix
     PRIVATE orchestrix_core
 )
 
-# Automated tests will be added here as the project develops.
+# Automated tests.
 include(CTest)
 
 if(BUILD_TESTING)
-    # Add test targets here when the test files are implemented.
-endif()
+    add_executable(test_milestone1
+        tests/test_milestone1.cpp
+    )
 
+    target_link_libraries(test_milestone1
+        PRIVATE orchestrix_core
+    )
+
+    # Register with CTest so that 'ctest' discovers and runs the test binary.
+    add_test(NAME Milestone1Tests COMMAND test_milestone1)
+endif()
