@@ -27,6 +27,9 @@ add_library(orchestrix_core
     src/Scheduler.cpp
     src/SimulationEvent.cpp
     src/SimulationEngine.cpp
+    src/MetricsCollector.cpp
+    src/StrategyComparison.cpp
+    src/ReportGenerator.cpp
 )
 
 target_include_directories(orchestrix_core
@@ -72,4 +75,13 @@ if(BUILD_TESTING)
         PRIVATE orchestrix_core
     )
     add_test(NAME Milestone3Tests COMMAND test_milestone3)
+
+    # ── Milestone 4 ──────────────────────────────────────────────────────────
+    add_executable(test_milestone4
+        tests/test_milestone4.cpp
+    )
+    target_link_libraries(test_milestone4
+        PRIVATE orchestrix_core
+    )
+    add_test(NAME Milestone4Tests COMMAND test_milestone4)
 endif()
