@@ -77,6 +77,14 @@ public:
     /// Returns a human-readable type label (e.g. "ComputeServer").
     [[nodiscard]] virtual std::string typeName() const = 0;
 
+    /// Returns true when this server type accepts the given job's workload,
+    /// independent of current resource availability.
+    ///
+    /// This is the public face of the protected canRunJob() virtual.  It is
+    /// used by SimulationEngine::canEverFit() to check type compatibility
+    /// against total capacity without needing to temporarily clear allocations.
+    [[nodiscard]] bool isCompatibleWith(const ResourceRequirements& req) const noexcept;
+
 protected:
     /// Derived classes override this to impose workload compatibility rules.
     /// Return false to prevent this server type from accepting a job.

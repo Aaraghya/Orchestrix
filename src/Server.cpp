@@ -117,6 +117,10 @@ void Server::setAvailable(bool available) noexcept {
     m_available = available;
 }
 
+bool Server::isCompatibleWith(const ResourceRequirements& req) const noexcept {
+    return canRunJob(req);
+}
+
 // ─── ComputeServer ────────────────────────────────────────────────────────────
 
 std::string ComputeServer::typeName() const { return "ComputeServer"; }
