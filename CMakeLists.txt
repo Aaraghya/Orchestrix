@@ -23,6 +23,8 @@ add_library(orchestrix_core
     src/Job.cpp
     src/Server.cpp
     src/DataCenter.cpp
+    src/AllocationStrategy.cpp
+    src/Scheduler.cpp
 )
 
 target_include_directories(orchestrix_core
@@ -42,14 +44,21 @@ target_link_libraries(orchestrix
 include(CTest)
 
 if(BUILD_TESTING)
+    # ── Milestone 1 ──────────────────────────────────────────────────────────
     add_executable(test_milestone1
         tests/test_milestone1.cpp
     )
-
     target_link_libraries(test_milestone1
         PRIVATE orchestrix_core
     )
-
-    # Register with CTest so that 'ctest' discovers and runs the test binary.
     add_test(NAME Milestone1Tests COMMAND test_milestone1)
+
+    # ── Milestone 2 ──────────────────────────────────────────────────────────
+    add_executable(test_milestone2
+        tests/test_milestone2.cpp
+    )
+    target_link_libraries(test_milestone2
+        PRIVATE orchestrix_core
+    )
+    add_test(NAME Milestone2Tests COMMAND test_milestone2)
 endif()
