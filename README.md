@@ -18,7 +18,7 @@ It simulates job scheduling and resource allocation across data center servers w
 - **Testing:** CTest
 
 ### Project Status
-Milestones 4/6 completed. CLI, workload generation, and final integration are in progress.
+CLI, workload generation, and final integration are in progress.
 
 ---
 
