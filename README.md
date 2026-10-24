@@ -1,4 +1,4 @@
-7### A Discrete-Event Simulator for Adaptive Data-Center Resource Allocation
+### A Discrete-Event Simulator for Adaptive Data-Center Resource Allocation
 
 _**Orchestrix**_ is a C++ project developed for our Semester 3 Object-Oriented Programming with C++ course.
 
