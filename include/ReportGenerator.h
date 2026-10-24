@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DataCenter.h"
+#include "Job.h"
 #include "SimulationEvent.h"
 #include "SimulationMetrics.h"
 
@@ -30,6 +32,29 @@ public:
     /// Prints one section per strategy using generate(), separated by dividers.
     [[nodiscard]] static std::string generateComparison(
         const std::vector<SimulationMetrics>& results);
+
+    /// Produces a server resource-status report from a completed simulation.
+    ///
+    /// Replays JOB_STARTED and RESOURCE_RELEASED events from the engine's
+    /// event log to reconstruct how each server's available CPU, RAM, storage,
+    /// and GPU change during the run.  The report shows:
+    ///   - An "Initial" snapshot (all resources free).
+    ///   - One snapshot after each JOB_STARTED event (resources consumed).
+    ///   - One snapshot after each RESOURCE_RELEASED event (resources freed).
+    ///
+    /// This makes the dynamic allocation pattern visible without requiring any
+    /// engine modification or additional runtime state.
+    ///
+    /// Parameters
+    ///   dc      — the DataCenter used for the run (server ids, types, and
+    ///             total capacities; must outlive this call).
+    ///   events  — the event log from SimulationEngine::getEvents().
+    ///   jobs    — the job list from SimulationEngine::getJobs() (used to
+    ///             look up resource requirements by job id).
+    [[nodiscard]] static std::string generateServerStatus(
+        const DataCenter&                   dc,
+        const std::vector<SimulationEvent>& events,
+        const std::vector<Job>&             jobs);
 
     /// Produces a formatted report of simulation events matching a given event type.
     [[nodiscard]] static std::string generateFilteredEvents(
