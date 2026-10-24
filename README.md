@@ -60,9 +60,7 @@ Menu options 1–3 run one strategy on the generated workload, option 4 compares
 
 ## Project Status
 
-Milestones 1–6 are complete: the project builds cleanly, and 212 unit tests and 4 CLI smoke tests pass.
-
-Optional extensions not implemented: server failure/recovery, priority scheduling, energy-aware allocation and CSV export.
+Completed!
 
 ## Documentation
 

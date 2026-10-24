@@ -2,280 +2,202 @@
 
 ## 1. Project Overview
 
-Orchestrix is a C++17 command-line discrete-event simulator for adaptive data-center resource allocation.
+Orchestrix is a C++17 command-line application that simulates data-center job scheduling and resource allocation using discrete-event simulation.
 
-The system models heterogeneous servers, computational jobs, resource constraints and job execution over simulated time. It supports multiple allocation strategies and compares their performance using measurable metrics.
+The system models heterogeneous servers with CPU, RAM, storage, and GPU capacities. Jobs progress through arrival, queueing, execution, and completion, while the scheduler allocates resources according to one of three strategies: First Fit, Best Fit, or Load Balanced.
 
-The architecture should remain modular, testable and understandable. Components must have clearly defined responsibilities and interact through explicit interfaces.
+The simulator also generates reproducible workloads, records simulation events, calculates performance metrics, and compares scheduling strategies under equivalent workload conditions.
 
-## 2. Architectural Principles
+## 2. Architectural Overview
 
-- **Encapsulation:** Keep resource capacities, allocation state and job state private, exposing controlled operations.
-- **Abstraction:** Define common interfaces for allocation strategies and other genuinely interchangeable behaviors.
-- **Inheritance:** Use base classes and derived classes where they represent meaningful server or workload specializations.
-- **Polymorphism:** Allow the scheduler to use different allocation strategies through a common abstract interface.
-- **Single responsibility:** Keep simulation timing, allocation decisions, resource accounting, CLI interaction and reporting separate.
-- **Composition:** Build the simulation engine using collaborating components rather than placing the entire system in one class.
-- **Testability:** Keep core logic independent of terminal input and output so it can be tested automatically.
+Orchestrix separates resource and job modeling, server management, scheduling decisions, simulation execution, workload generation, and performance analysis into distinct components.
+
+Its architecture uses object-oriented programming concepts, including encapsulation, inheritance, abstraction, and polymorphism. Server types share a common base class, while allocation strategies implement a shared interface that allows the scheduler to operate with different scheduling policies.
+
+The simulation engine coordinates the job lifecycle and simulation clock. Resource accounting is handled by server operations, and the command-line interface provides access to simulation configuration and results.
 
 ## 3. Core Components
 
 ### 3.1 ResourceRequirements
 
-Represents the resources required by a job.
+`ResourceRequirements` represents the resources requested by a job.
 
-Fields:
+It captures four resource dimensions:
+
 - CPU cores
 - RAM in GB
 - Storage in GB
 - GPU devices
 
-Requirements must be non-negative and valid. Resource comparisons must use consistent units.
+These requirements are used to determine whether a server has sufficient available capacity to accommodate a job.
 
 ### 3.2 Job
 
-Represents a computational workload.
+`Job` represents an individual computational workload in the simulation.
 
-Responsibilities:
-- Store job ID and workload requirements.
-- Store priority, arrival time and execution duration.
-- Track lifecycle state and relevant timestamps.
-- Track the assigned server, if any.
-- Expose controlled state transitions.
+A job stores its identifying information, resource requirements, arrival and execution information, and lifecycle state. Its state reflects its progress through the simulation, including waiting, execution, completion, or rejection.
 
-Possible workload specializations include CPUJob, GPUJob, StorageJob and HybridJob. Use specialization only where it provides meaningful differences in compatibility or behavior.
+Job information is used by the scheduler and simulation engine to determine eligibility for execution, track progress, and calculate performance metrics.
 
 ### 3.3 Server
 
-Represents a server with finite resource capacity.
+`Server` is the common base class for server models. It maintains server resource capacities and allocation state, and provides operations for checking feasibility, reserving resources, and releasing resources.
 
-Responsibilities:
-- Store server ID and total resource capacities.
-- Track available and allocated resources.
-- Check resource feasibility.
-- Reserve resources for a job.
-- Release previously reserved resources safely.
-- Track whether the server is available for allocation.
+The implemented server types are:
 
-Derived server types may include ComputeServer, GPUServer and StorageServer. All servers must obey the same resource-accounting invariants.
+- **ComputeServer:** Represents compute-oriented server capacity.
+- **GPUServer:** Represents server capacity intended for GPU workloads.
+- **StorageServer:** Represents storage-oriented server capacity.
+
+Resource reservations and releases are validated by the server operations. This keeps resource accounting associated with the server whose capacity is being modified and prevents resource over-allocation through those operations.
 
 ### 3.4 DataCenter
 
-Owns or manages the collection of servers.
+`DataCenter` manages the collection of servers available to the simulation.
 
-Responsibilities:
-- Register and retrieve servers.
-- Provide access to eligible servers for scheduling.
-- Expose server state for inspection and metrics.
-- Prevent duplicate server IDs.
+It provides the server information used during scheduling and resource allocation. The scheduler and allocation strategies use this collection to identify servers that can accommodate waiting jobs.
 
-### 3.5 ResourceManager
+### 3.5 AllocationStrategy
 
-Coordinates resource reservation and release.
+`AllocationStrategy` defines the common interface used by the scheduling policies. The implemented strategies are First Fit, Best Fit, and Load Balanced.
 
-Responsibilities:
-- Verify that a job can run on a server.
-- Validate resource requirements and server compatibility.
-- Reserve resources atomically.
-- Release resources exactly once.
-- Prevent over-allocation and negative available capacity.
+**First Fit** selects the first suitable server encountered in the candidate order.
 
-The ResourceManager is the authoritative coordinator for allocation accounting. A failed reservation must not leave partially allocated resources.
+**Best Fit** selects a suitable server according to the strategy's resource-fit criteria.
 
-**Implementation note:** the current build places this responsibility directly in `Server::reserveResources()` / `Server::releaseResources()`, which validate atomically, with the Scheduler as the caller. There is no separate ResourceManager class yet; see §9.
+**Load Balanced** selects a suitable server according to its load-balancing criteria.
 
-### 3.6 AllocationStrategy
+Each strategy evaluates server suitability and returns a candidate when one is available. The strategies differ in server selection; resource reservation is performed separately through the server's resource-management operations.
 
-An abstract interface for selecting a suitable server.
+### 3.6 Scheduler
 
-Implementations:
-- FirstFit
-- BestFit
-- LoadBalanced
+The `Scheduler` coordinates job scheduling and resource allocation.
 
-Responsibilities:
-- Evaluate candidate servers.
-- Select a feasible server according to the chosen policy.
-- Return a clear no-candidate result when no server is currently suitable.
-- Provide a concise explanation of the decision where practical.
+It examines waiting jobs, uses the configured allocation strategy to select a suitable server, and requests resource reservation. Following a successful allocation, the job can enter execution. Jobs that cannot currently be allocated remain waiting unless their requirements make them impossible to accommodate, in which case they are rejected according to the simulation rules.
 
-Strategies select servers; the ResourceManager validates and performs reservations.
+The scheduler coordinates these decisions without duplicating the server's resource-accounting implementation.
 
-### 3.7 Scheduler
+### 3.7 SimulationEngine
 
-Coordinates job selection and allocation decisions.
+`SimulationEngine` coordinates the discrete-event simulation.
 
-Responsibilities:
-- Inspect waiting jobs.
-- Ask the configured strategy to select a server.
-- Request resource reservation.
-- Start eligible jobs after successful allocation.
-- Leave temporarily infeasible jobs waiting.
-- Update job states consistently.
+It maintains simulated time and processes job arrivals, scheduling activity, execution, and completion. Running jobs are tracked against their completion times. When a job completes, the engine updates its state and releases its reserved resources.
 
-The Scheduler must not duplicate the ResourceManager's resource-accounting logic.
+The engine also handles the configured simulation stopping condition. Its event processing and lifecycle management provide the basis for the metrics calculated after a run.
 
-### 3.8 SimulationEngine
+### 3.8 WorkloadGenerator
 
-Coordinates the simulation lifecycle.
+`WorkloadGenerator` creates synthetic workloads for simulation runs.
 
-Responsibilities:
-- Maintain the current simulation tick.
-- Process job arrivals and completion events.
-- Invoke the Scheduler at the defined scheduling point.
-- Track running jobs and their finish times.
-- Release resources when jobs complete.
-- Stop when the configured stopping condition is met.
+It supports configurable job and server counts and uses a specified random seed to make workload generation reproducible. The same generated workload can be supplied to different scheduling strategies for comparison.
 
-The engine coordinates other components but does not implement individual allocation algorithms.
+The current command-line interface uses generated workloads; manual job entry is not implemented.
 
-### 3.9 WorkloadGenerator
+### 3.9 MetricsCollector
 
-Creates reproducible synthetic workloads.
+`MetricsCollector` calculates performance metrics from the completed simulation's job states and event log.
 
-Responsibilities:
-- Generate jobs with valid requirements and arrival times.
-- Support configurable workload size and characteristics.
-- Accept an optional random seed.
-- Produce a workload that can be reused for strategy comparisons.
+The reported metrics include:
 
-The current CLI uses generated workloads. Manual job entry remains a possible extension.
+- Completed and rejected job counts and rates
+- Average waiting time
+- Throughput
+- CPU utilization
+- RAM utilization
+- Storage utilization
+- GPU utilization, where applicable
 
-### 3.10 MetricsCollector
+The collector is stateless: it derives metrics from the results of a completed run rather than maintaining a separate simulation state. Resource utilization is based on resource-time accounting, while job-related metrics are derived from the recorded simulation outcomes.
 
-Computes simulation performance from a completed run, including:
-- Jobs completed, rejected, cancelled and failed.
-- Average waiting time.
-- Throughput.
-- Resource utilization.
-- Optional migration and energy metrics when those features are implemented.
+### 3.10 Command-Line Interface and Reporting
 
-Metrics must be derived from actual simulation events and state, not estimated from hard-coded examples.
+The command-line interface provides the user-facing entry point to Orchestrix. It supports running individual scheduling strategies, comparing strategies, configuring workloads, and viewing simulation results.
 
-### 3.11 FailureManager
+The interface displays summary metrics and comparison results in text form. Report presentation remains separate from the core scheduling and simulation logic.
 
-An optional extension for simulated server failures and recovery.
+CSV export is not implemented in the current build.
 
-Responsibilities:
-- Change server availability.
-- Identify jobs affected by a failure.
-- Coordinate job failure, retry or reallocation according to documented rules.
-- Prevent duplicate resource release.
+## 4. Component Interaction and Execution Flow
 
-Implement this component after normal scheduling and execution work reliably.
+A typical Orchestrix run follows this sequence:
 
-### 3.12 ReportGenerator
+1. The CLI configures the workload and data-center parameters.
+2. The workload generator creates the jobs using the configured settings and random seed.
+3. The simulation engine advances simulated time and processes job arrivals.
+4. Eligible jobs enter the scheduling process.
+5. The scheduler asks the selected allocation strategy to identify a suitable server.
+6. The selected server validates and reserves the required resources.
+7. The allocated job enters execution and is tracked until its completion time.
+8. When execution completes, the simulation engine updates the job state and releases the reserved resources.
+9. The simulation continues until its stopping condition is reached.
+10. The metrics collector derives performance measurements from the completed run, and the CLI presents the results.
 
-Formats simulation results for users.
+During strategy comparison, each strategy runs with a fresh `DataCenter`, job vector, `Scheduler`, and `SimulationEngine`. This prevents mutable state from one run from affecting another and allows the strategies to be evaluated against equivalent workload specifications.
 
-Responsibilities:
-- Display summary metrics.
-- Compare allocation strategies.
-- Produce text reports for individual runs and strategy comparisons.
-- Keep report formatting separate from simulation logic.
+## 5. Resource Allocation and Accounting
 
-CSV export is an optional extension and is not implemented in the current build.
+Resource allocation is implemented through the interaction between the scheduler, allocation strategies, and server operations.
 
-### 3.13 CLI
+The allocation strategy determines which suitable server to select. The scheduler requests the reservation, and the server validates the operation against its available capacity. Resource release occurs when the simulation engine processes job completion.
 
-Provides the user-facing interface.
+There is no separate `ResourceManager` class in the current implementation. Reservation and release logic resides in the server operations, including `Server::reserveResources()` and `Server::releaseResources()`.
 
-Responsibilities:
-- Configure the data center.
-- Create or generate workloads.
-- Select an allocation strategy.
-- Start and inspect simulations.
-- Display server resources, job states and event logs.
-- Request comparisons and report exports.
+This arrangement keeps the allocation policy separate from the operations that modify resource availability.
 
-The CLI must call application components rather than implement scheduling or resource management itself.
+## 6. Simulation and Performance Measurement
 
-## 4. Component Interaction
+Orchestrix uses integer simulation ticks to represent the progression of time. Job arrivals, waiting, execution, and completion are processed according to the documented simulation rules.
 
-The normal execution flow is:
+The workload generator and random seed support reproducible experiments. Strategy comparisons use equivalent workload specifications and independent mutable simulation state.
 
-1. The CLI configures the data center and workload.
-2. The SimulationEngine processes events as simulated time advances.
-3. Newly arrived jobs become eligible for scheduling.
-4. The Scheduler asks the selected AllocationStrategy for a candidate server.
-5. The ResourceManager validates and reserves resources.
-6. The job enters the running state with a scheduled finish tick.
-7. At completion, the engine releases resources and updates the job state.
-8. MetricsCollector records the event and updates relevant metrics.
-9. ReportGenerator presents the results.
+Performance measurements are calculated from simulation outcomes rather than fixed example values. The reported metrics allow the scheduling strategies to be compared in terms of job completion, rejection, waiting time, throughput, and resource utilization.
 
-The dependency direction should remain clear: the CLI depends on application components, while domain classes should not depend on terminal input or report formatting.
+The simulator models these operations locally; it does not allocate resources on real data-center infrastructure.
 
-## 5. Suggested Directory Structure
+## 7. Error Handling and Validation
 
-```text
-Orchestrix/
-├── AGENTS.md
-├── README.md
-├── CMakeLists.txt
-├── .gitignore
-├── docs/
-│   └── architecture.md
-├── include/
-│   ├── ResourceRequirements.h
-│   ├── Job.h
-│   ├── Server.h
-│   ├── DataCenter.h
-│   ├── ResourceManager.h
-│   ├── AllocationStrategy.h
-│   ├── Scheduler.h
-│   ├── SimulationEngine.h
-│   ├── WorkloadGenerator.h
-│   ├── MetricsCollector.h
-│   ├── FailureManager.h
-│   └── ReportGenerator.h
-├── src/
-│   ├── main.cpp
-│   └── implementation files matching the headers
-└── tests/
-    └── automated tests
-```
+Validation is applied to resource requirements, resource reservations, and other operations that could produce invalid simulation state.
 
-This is a target structure, not a requirement to create every file immediately. Add components as their implementation milestones begin.
+The simulation distinguishes between jobs that cannot be accommodated by the available server capacities and jobs that are temporarily waiting for resources. Resource reservation and release operations validate their accounting changes to prevent over-allocation and invalid resource state.
 
-## 6. Error Handling
+The CLI also handles termination through normal menu interaction and end-of-input conditions, avoiding an unintended infinite menu loop when standard input reaches EOF.
 
-- Reject invalid configurations before simulation begins.
-- Reject jobs whose requirements exceed the capacity of every compatible server.
-- Treat temporary resource shortages as scheduling outcomes, not exceptional program failures.
-- Prevent invalid state transitions.
-- Report file-reading and report-writing failures clearly.
-- Use exceptions for invalid operations or unrecoverable errors, not ordinary scheduling decisions.
+## 8. Testing and Verification
 
-## 7. Testing Requirements
+Orchestrix includes automated tests covering individual components and integrated simulation behavior.
 
-Test each component independently before integrating it.
+The test suite covers resource requirements and accounting, server and job behavior, allocation strategies, scheduling, simulation timing, workload reproducibility, metric calculations, and CLI execution paths.
 
-At minimum, verify:
-- Resource feasibility and reservation.
-- Resource release and accounting invariants.
-- Server and job validation.
-- Each allocation strategy.
-- Job arrivals and completion timing.
-- Reproducibility of workload generation.
-- Metric calculations.
-- Integration of the complete simulation.
+The latest recorded project validation reported:
 
-## 8. Scope Boundaries
+- **212 unit tests** across Milestones 1–6
+- **4 CLI smoke tests**
+- **10/10 CTest entries passing**
+- A clean build with zero compiler warnings
 
-The initial implementation is a local CLI simulation.
+These figures describe the recorded validation results and may change as the project evolves.
 
-It does not require real cloud infrastructure, networking, distributed execution, a database, a graphical interface or machine learning.
+## 9. Scope and Limitations
 
-Prioritize a correct, testable simulation engine before optional failure recovery, migration and energy-aware scheduling.
+Orchestrix is a local C++17 command-line simulation project. Its current scope includes heterogeneous server modeling, three allocation strategies, reproducible workload generation, discrete-event execution, performance measurement, and strategy comparison.
 
-## 9. Implementation Status
+The following features are not implemented in the current build:
 
-The implemented milestones follow this design with the following clarifications:
+- A separate `ResourceManager` component
+- Server failure and recovery simulation
+- Job migration and reallocation following failures
+- CSV report export
+- Manual job entry through the CLI
+- Energy-aware scheduling
+- Real cloud infrastructure integration or distributed execution
+- A graphical user interface
 
-- **ResourceManager (§3.5):** resource accounting is implemented atomically inside `Server`. The Scheduler obtains a server from the selected strategy and calls `Server::reserveResources()`; no separate ResourceManager class exists in the current build.
-- **FailureManager (§3.11):** not implemented; server failure and recovery remain optional extensions.
-- **ReportGenerator (§3.12):** produces text reports only; CSV export is not implemented.
-- **WorkloadGenerator (§3.9):** generates reproducible synthetic workloads; the CLI does not offer manual job entry.
-- **MetricsCollector (§3.10):** stateless; derives all metrics from the completed engine's job states and event log.
-- **Strategy comparison:** every strategy runs with a fresh `DataCenter`, job vector, `Scheduler` and `SimulationEngine`, so one run cannot mutate another run's state.
+These limitations distinguish the implemented simulator from possible future extensions.
+
+## 10. Implementation Summary
+
+Orchestrix uses an object-oriented, component-based architecture to simulate data-center resource allocation and compare scheduling strategies. Its main components are the job and resource models, server hierarchy, data center, allocation strategies, scheduler, simulation engine, workload generator, metrics collector, and command-line interface.
+
+Resource accounting is implemented within server operations, while the simulation engine manages event progression and job completion. Reproducible workload generation and independent simulation runs support meaningful strategy comparisons.
+
+The implementation combines core C++ object-oriented concepts with discrete-event simulation, resource scheduling, automated testing, and performance analysis.
