@@ -16,14 +16,6 @@ Build a C++17 CLI-based discrete-event simulator that models a small data center
 10. Compare strategies using the same initial server configuration and workload.
 11. Provide tests for normal behavior and edge cases.
 
-## Optional extensions
-- Priority scheduling and starvation prevention.
-- Workload generation (implemented).
-- CSV report export.
-- Server failures and recovery.
-- Job reallocation.
-- Energy-aware allocation.
-
 ## Constraints
 - C++17.
 - CMake build system.
