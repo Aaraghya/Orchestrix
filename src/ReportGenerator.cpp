@@ -92,3 +92,44 @@ std::string ReportGenerator::generateComparison(
 
     return out.str();
 }
+
+std::string ReportGenerator::generateFilteredEvents(
+        const std::vector<SimulationEvent>& events,
+        EventType filterType)
+{
+    std::ostringstream out;
+    const std::string divider(60, '-');
+
+    out << divider << "\n";
+    out << "  Simulation Events: " << eventTypeToString(filterType) << "\n";
+    out << divider << "\n";
+
+    out << "  " << std::left
+        << std::setw(8)  << "Tick"
+        << std::setw(12) << "Job ID"
+        << std::setw(12) << "Server ID"
+        << "Detail" << "\n";
+    out << "  " << std::string(58, '-') << "\n";
+
+    int count = 0;
+    for (const auto& ev : events) {
+        if (ev.type == filterType) {
+            ++count;
+            out << "  " << std::left
+                << std::setw(8)  << ev.tick
+                << std::setw(12) << (ev.jobId.empty() ? "-" : ev.jobId)
+                << std::setw(12) << (ev.serverId.empty() ? "-" : ev.serverId)
+                << ev.detail << "\n";
+        }
+    }
+
+    if (count == 0) {
+        out << "  (No matching events found)\n";
+    }
+
+    out << divider << "\n";
+    out << "  Total matching events: " << count << "\n";
+    out << divider << "\n";
+
+    return out.str();
+}
