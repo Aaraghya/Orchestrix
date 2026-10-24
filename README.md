@@ -1,4 +1,4 @@
-### A Discrete-Event Simulator for Adaptive Data-Center Resource Allocation
+7### A Discrete-Event Simulator for Adaptive Data-Center Resource Allocation
 
 _**Orchestrix**_ is a C++ project developed for our Semester 3 Object-Oriented Programming with C++ course.
 
@@ -55,9 +55,7 @@ C:\msys64\ucrt64\bin\cmake.exe --build build
 C:\msys64\ucrt64\bin\ctest.exe --test-dir build --output-on-failure
 .\build\orchestrix.exe
 ```
-
-> **Note on test suites:** Automated milestone tests M5 and M6 each have 1 known pre-existing failing assertion (`test_milestone5`: 42 passed, 1 failed; `test_milestone6`: 17 passed, 1 failed) that predates these features. All other milestone unit tests and CLI smoke tests pass.
-
+ 
 ## Using the CLI
 
 The interactive menu provides 8 options:
