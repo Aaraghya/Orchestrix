@@ -1,8 +1,6 @@
 # Orchestrix — Demo Guide
 
-This guide covers every major feature of the Orchestrix command-line interface. Each scenario is reproducible: the workload generator is seeded, the simulation is deterministic, and every output shown below was captured from the current build.
-
-Use it as a run sheet during the project demonstration. Explanations are included so you can talk about what the program is doing, not just read numbers aloud.
+This guide covers every major feature of the Orchestrix command-line interface. Each scenario is reproducible: the workload generator is seeded, the simulation is deterministic, and we captured every output shown below from the current build.
 
 ---
 
@@ -119,16 +117,6 @@ Options 2 and 3 produce identical values for this seed because the workload has 
 
 All three also report the same utilization: CPU 9.9%, RAM 8.2%, Storage 3.2%, GPU 7.2%.
 
-**Talking points**
-
-- `Completed normally` means every job reached a terminal state before the 100,000-tick safeguard.
-- Two jobs are rejected at their arrival tick because their requirements exceed the total capacity of every compatible server. They never enter the waiting queue.
-- `Elapsed = 54` is the tick at which the last job completed.
-- `Throughput = 18 / 54 = 0.333 jobs/tick`.
-- The average wait uses only the 18 jobs that started; every one of them started on its arrival tick.
-- Utilization is low because this workload is sparse. It is a resource-time average over the entire run, not an instantaneous load reading.
-- Identical strategy results at seed 42 are expected here; Demo 2 creates contention and separates them.
-
 ---
 
 ## Demo 2 — Strategy comparison (Option 4)
@@ -179,15 +167,6 @@ The report ends with the compact job outcome summary:
   LoadBalanced           20         0        0        0
 -------------------------------------------------------
 ```
-
-**Talking points**
-
-- All strategies receive the same server specifications and job specifications. Each run builds a fresh `DataCenter`, job vector, `Scheduler`, and `SimulationEngine`, so no allocation state leaks between runs.
-- Completed and rejected counts tie here because rejection depends on whether a job can ever fit, not on the placement policy.
-- Waiting time exposes the placement difference: Best Fit gives the lowest average wait in this run, while Load Balanced delays the final completion to tick 62.
-- The summary table is a quick final-count check. `Queued` and `Running` are zero because the simulation finished normally with all jobs terminal.
-- At seed 42 the three strategies tie; seed 84 deliberately creates contention. Use both to show that the strategies are different implementations, not copies.
-
 ---
 
 ## Demo 3 — Constrained resources and rejection
@@ -234,15 +213,6 @@ The compact summary table confirms the tie:
   LoadBalanced           11        39        0        0
 -------------------------------------------------------
 ```
-
-**Talking points**
-
-- A job is rejected at arrival only when its requirements cannot fit within the total capacity of any compatible server, even if that server were completely idle. A temporarily busy server does not cause permanent rejection.
-- 39 jobs cannot fit on the single generated server, so they are rejected immediately instead of waiting forever.
-- `GPU : N/A` appears because the generated server has zero GPU capacity. The utilization denominator is zero, so the metric is correctly undefined rather than a division by zero.
-- With one server there is no placement choice, so First Fit, Best Fit, and Load Balanced necessarily produce the same report.
-- The run still terminates normally: 11 jobs complete, 39 are rejected, and all reserved resources are released.
-
 ---
 
 ## Demo 4 — Workload configuration (Option 5)
@@ -271,16 +241,6 @@ The compact summary table confirms the tie:
     Max arrival: 50 tick(s)
     Max dur.   : 10 tick(s)
 ```
-
-**Talking points**
-
-- The three editable values are job count (1–1000), server count (1–100), and seed (unsigned 32-bit).
-- Blank input keeps the current value. Invalid or out-of-range input behaves the same way and prints a `Keeping ...` message.
-- `Max arrival` and `Max duration` are displayed for context but are not editable through the CLI.
-- Options 1–4 and 7–8 generate a fresh workload from these settings on every run. Settings persist until changed or until the program is restarted.
-- The same job count, server count, and seed always regenerate the same workload, which is what makes these demos repeatable.
-- Option 4 builds one set of specifications and reuses it for all three strategies; it does not generate a different workload per strategy.
-
 ---
 
 ## Demo 5 — Server status display (Option 7)
@@ -330,15 +290,6 @@ Option 7 always runs First Fit. It is best demonstrated with a small workload be
 
 This is an excerpt. The full report prints one snapshot after each `JOB_STARTED` and `RESOURCE_RELEASED` event. For this run the remaining snapshots occur at ticks 4, 11, 13, 18, 35, 42, 44, 45, 51, and 53, ending with every server fully available again.
 
-**Talking points**
-
-- Option 7 does not reuse a previous report. It reruns First Fit using the current workload settings.
-- The table is reconstructed by replaying job start and resource release events from the run's event log. It starts from each server's total capacity and does not read live allocation state.
-- `Cap` is total capacity; `Avl` is what remains available. The difference is the amount currently reserved.
-- At tick 3, job-4 consumes 2 CPU cores, 2 GB RAM, and 427 GB storage on `srv-2`; those values return at tick 10, showing a 7-tick reservation.
-- Rows are ordered by server ID, and values are printed to one decimal place.
-- Output length grows with the number of events, so use a small configured workload during the live demo.
-
 ---
 
 ## Demo 6 — Filter the event log (Option 8)
@@ -382,16 +333,6 @@ Choosing `4` prints:
   Total matching events: 2
 ------------------------------------------------------------
 ```
-
-**Talking points**
-
-- Option 8 runs First Fit with the current settings, then filters that run's in-memory event log. It does not modify the simulation or rerun it per filter.
-- The four filters correspond to the four lifecycle points: arrival, start, completion, and rejection.
-- At the prompt you can also type `arrival`, `start`, `completion`, `rejection`, or the exact event names such as `JOB_ARRIVED`.
-- Events are printed in chronological order. The server column shows `-` when an event has no server, as with arrivals and rejections.
-- These two rejections are the same jobs counted as rejected in Demo 1. Choosing filter 1 would list all 20 arrivals; filter 2 would also show the `Finish tick=...` detail for each start.
-- An invalid filter choice prints a message and returns to the main menu without printing an event table.
-
 ---
 
 ## Suggested live demo order
@@ -407,11 +348,3 @@ Choosing `4` prints:
 Workload settings persist between menu choices, so set them explicitly at each step or restart between demos.
 
 ---
-
-## Verification
-
-Verified on 2026-10-25 against the current source:
-
-- `cmake --build build` — build up to date, no errors.
-- `ctest --test-dir build --output-on-failure` — **10/10 tests passed** (212 unit tests across six milestone executables, plus four CLI smoke tests).
-- All reports and event tables in this guide were produced by running the executable with the stated inputs. Repeating a scenario with the same settings reproduces the same output.
