@@ -54,6 +54,8 @@ std::string ReportGenerator::generate(const SimulationMetrics& m) {
     out << "    Cancelled   : " << m.cancelled       << "\n";
     out << "    Failed      : " << m.failed          << "\n";
     out << "    Still active: " << m.stillActive     << "\n";
+    out << "      Queued    : " << m.queued          << "\n";
+    out << "      Running   : " << m.running         << "\n";
 
     out << "\n  Performance\n";
     out << "    Avg wait time  : ";
@@ -91,6 +93,70 @@ std::string ReportGenerator::generateComparison(
         out << generate(m);
         out << "\n";
     }
+
+    const std::string divider(55, '-');
+    out << divider << "\n";
+    out << "  Job Outcome Summary (Final Job Counts)\n";
+    out << divider << "\n";
+    out << "  " << std::left  << std::setw(15) << "Strategy"
+        << std::right
+        << std::setw(10) << "Completed"
+        << std::setw(10) << "Rejected"
+        << std::setw(9)  << "Queued"
+        << std::setw(9)  << "Running"
+        << "\n";
+    out << "  " << std::string(53, '-') << "\n";
+    for (const auto& m : results) {
+        out << "  " << std::left  << std::setw(15) << m.strategyName
+            << std::right
+            << std::setw(10) << m.completed
+            << std::setw(10) << m.rejected
+            << std::setw(9)  << m.queued
+            << std::setw(9)  << m.running
+            << "\n";
+    }
+    out << divider << "\n";
+
+    return out.str();
+}
+
+std::string ReportGenerator::generateFilteredEvents(
+        const std::vector<SimulationEvent>& events,
+        EventType filterType)
+{
+    std::ostringstream out;
+    const std::string divider(60, '-');
+
+    out << divider << "\n";
+    out << "  Simulation Events: " << eventTypeToString(filterType) << "\n";
+    out << divider << "\n";
+
+    out << "  " << std::left
+        << std::setw(8)  << "Tick"
+        << std::setw(12) << "Job ID"
+        << std::setw(12) << "Server ID"
+        << "Detail" << "\n";
+    out << "  " << std::string(58, '-') << "\n";
+
+    int count = 0;
+    for (const auto& ev : events) {
+        if (ev.type == filterType) {
+            ++count;
+            out << "  " << std::left
+                << std::setw(8)  << ev.tick
+                << std::setw(12) << (ev.jobId.empty() ? "-" : ev.jobId)
+                << std::setw(12) << (ev.serverId.empty() ? "-" : ev.serverId)
+                << ev.detail << "\n";
+        }
+    }
+
+    if (count == 0) {
+        out << "  (No matching events found)\n";
+    }
+
+    out << divider << "\n";
+    out << "  Total matching events: " << count << "\n";
+    out << divider << "\n";
 
     return out.str();
 }

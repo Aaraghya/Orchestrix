@@ -56,6 +56,11 @@ public:
         const std::vector<SimulationEvent>& events,
         const std::vector<Job>&             jobs);
 
+    /// Produces a formatted report of simulation events matching a given event type.
+    [[nodiscard]] static std::string generateFilteredEvents(
+        const std::vector<SimulationEvent>& events,
+        EventType filterType);
+
 private:
     ReportGenerator() = delete;
 

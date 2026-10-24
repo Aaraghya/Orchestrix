@@ -30,13 +30,13 @@ SimulationMetrics MetricsCollector::collect(
 
     for (const auto& job : jobs) {
         switch (job.getState()) {
-            case JobState::COMPLETED:  ++m.completed;   break;
-            case JobState::REJECTED:   ++m.rejected;    break;
-            case JobState::CANCELLED:  ++m.cancelled;   break;
-            case JobState::FAILED:     ++m.failed;      break;
-            case JobState::QUEUED:
-            case JobState::RUNNING:    ++m.stillActive; break;
-            case JobState::PENDING:    ++m.stillActive; break;
+            case JobState::COMPLETED:  ++m.completed;                    break;
+            case JobState::REJECTED:   ++m.rejected;                     break;
+            case JobState::CANCELLED:  ++m.cancelled;                    break;
+            case JobState::FAILED:     ++m.failed;                       break;
+            case JobState::QUEUED:     ++m.stillActive; ++m.queued;      break;
+            case JobState::RUNNING:    ++m.stillActive; ++m.running;     break;
+            case JobState::PENDING:    ++m.stillActive;                  break;
         }
     }
 

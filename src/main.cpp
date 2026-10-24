@@ -25,6 +25,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -59,6 +60,7 @@ static void printMenu() {
     std::cout << "  5. Configure workload (job count / seed)\n";
     std::cout << "  6. Exit\n";
     std::cout << "  7. Server status display (First Fit run)\n";
+    std::cout << "  8. Filter simulation event log by type\n";
     std::cout << LINE_THIN << "\n";
     std::cout << "  Choice: ";
 }
@@ -224,6 +226,93 @@ static void runComparison(const std::vector<ServerSpec>& serverSpecs,
     std::cout << "\n" << ReportGenerator::generateComparison(results) << "\n";
 }
 
+// ─── Event log filtering runner ────────────────────────────────────────────────
+
+static bool runFilteredEvents(const std::vector<ServerSpec>& serverSpecs,
+                              const std::vector<JobSpec>&    jobSpecs,
+                              const WorkloadConfig&          cfg,
+                              int maxTick)
+{
+    // Build fresh DataCenter.
+    DataCenter dc;
+    for (const auto& spec : serverSpecs) {
+        switch (spec.kind) {
+            case ServerKind::Compute:
+                dc.addServer(std::make_unique<ComputeServer>(spec.id, spec.capacity));
+                break;
+            case ServerKind::GPU:
+                dc.addServer(std::make_unique<GPUServer>(spec.id, spec.capacity));
+                break;
+            case ServerKind::Storage:
+                dc.addServer(std::make_unique<StorageServer>(spec.id, spec.capacity));
+                break;
+        }
+    }
+
+    // Build fresh Job vector.
+    std::vector<Job> jobs;
+    jobs.reserve(jobSpecs.size());
+    for (const auto& spec : jobSpecs) {
+        jobs.emplace_back(spec.id, spec.requirements,
+                          spec.priority, spec.arrivalTick, spec.duration);
+    }
+
+    // Run simulation.
+    FirstFit         strategy;
+    Scheduler        sched{strategy, dc};
+    SimulationEngine engine{sched, dc, maxTick};
+    engine.setWorkload(std::move(jobs));
+
+    std::cout << "\n  Running simulation for event filtering on "
+              << cfg.jobCount << " job(s) / " << cfg.serverCount
+              << " server(s)  [seed=" << cfg.seed << "] ...\n";
+
+    engine.run();
+
+    std::cout << "\n" << LINE_THIN << "\n";
+    std::cout << "  FILTER EVENT LOG BY TYPE\n";
+    std::cout << LINE_THIN << "\n";
+    std::cout << "  1. Job Arrivals    (JOB_ARRIVED)\n";
+    std::cout << "  2. Job Starts      (JOB_STARTED)\n";
+    std::cout << "  3. Job Completions (JOB_COMPLETED)\n";
+    std::cout << "  4. Job Rejections  (JOB_REJECTED)\n";
+    std::cout << LINE_THIN << "\n";
+    std::cout << "  Choice (1-4): ";
+
+    std::string line;
+    if (!std::getline(std::cin, line)) {
+        std::cout << "\n  Input closed. Goodbye!\n\n";
+        return false;
+    }
+
+    const auto trimmed = [](const std::string& s) -> std::string {
+        std::size_t a = s.find_first_not_of(" \t\r\n");
+        if (a == std::string::npos) return {};
+        std::size_t b = s.find_last_not_of(" \t\r\n");
+        return s.substr(a, b - a + 1);
+    };
+    const std::string filterChoice = trimmed(line);
+
+    std::optional<EventType> targetType;
+    if (filterChoice == "1" || filterChoice == "arrival" || filterChoice == "JOB_ARRIVED")
+        targetType = EventType::JOB_ARRIVED;
+    else if (filterChoice == "2" || filterChoice == "start" || filterChoice == "JOB_STARTED")
+        targetType = EventType::JOB_STARTED;
+    else if (filterChoice == "3" || filterChoice == "completion" || filterChoice == "JOB_COMPLETED")
+        targetType = EventType::JOB_COMPLETED;
+    else if (filterChoice == "4" || filterChoice == "rejection" || filterChoice == "JOB_REJECTED")
+        targetType = EventType::JOB_REJECTED;
+
+    if (!targetType.has_value()) {
+        std::cout << "\n  Invalid choice '" << filterChoice
+                  << "'. Please enter a number between 1 and 4.\n";
+        return true;
+    }
+
+    std::cout << "\n" << ReportGenerator::generateFilteredEvents(engine.getEvents(), *targetType) << "\n";
+    return true;
+}
+
 // ─── Configure workload ────────────────────────────────────────────────────────
 
 static void configureWorkload(WorkloadConfig& cfg) {
@@ -293,7 +382,7 @@ int main() {
         const std::string ch = trimmed(choice);
 
         if (ch.empty()) {
-            std::cout << "\n  Please enter a menu option (1-7).\n";
+            std::cout << "\n  Please enter a menu option (1-8).\n";
             continue;
         }
 
@@ -325,9 +414,15 @@ int main() {
             auto [servers, jobs] = generateWorkload();
             runServerStatus(servers, jobs, cfg, MAX_TICK);
 
+        } else if (ch == "8") {
+            auto [servers, jobs] = generateWorkload();
+            if (!runFilteredEvents(servers, jobs, cfg, MAX_TICK)) {
+                running = false;
+            }
+
         } else {
             std::cout << "\n  Invalid choice '" << ch
-                      << "'. Please enter a number between 1 and 7.\n";
+                      << "'. Please enter a number between 1 and 8.\n";
         }
     }
 
