@@ -215,9 +215,7 @@ Orchestrix/
 ├── CMakeLists.txt
 ├── .gitignore
 ├── docs/
-│   ├── requirements.md
-│   ├── architecture.md
-│   └── simulation-rules.md
+│   └── architecture.md
 ├── include/
 │   ├── ResourceRequirements.h
 │   ├── Job.h

@@ -60,15 +60,13 @@ Menu options 1–3 run one strategy on the generated workload, option 4 compares
 
 ## Project Status
 
-Milestones 1–6 are complete: the project builds cleanly, 212 unit tests and 4 CLI smoke tests pass, and the simulation behavior matches [docs/simulation-rules.md](docs/simulation-rules.md).
+Milestones 1–6 are complete: the project builds cleanly, and 212 unit tests and 4 CLI smoke tests pass.
 
 Optional extensions not implemented: server failure/recovery, priority scheduling, energy-aware allocation and CSV export.
 
 ## Documentation
 
-- [docs/requirements.md](docs/requirements.md) — project requirements and acceptance criteria
 - [docs/architecture.md](docs/architecture.md) — component design and responsibilities
-- [docs/simulation-rules.md](docs/simulation-rules.md) — timing, lifecycle, scheduling and metric rules
 - [docs/demo-scenarios.md](docs/demo-scenarios.md) — reproducible CLI demonstrations
 
 ---
