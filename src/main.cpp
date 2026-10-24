@@ -58,6 +58,7 @@ static void printMenu() {
     std::cout << "  4. Compare all three strategies\n";
     std::cout << "  5. Configure workload (job count / seed)\n";
     std::cout << "  6. Exit\n";
+    std::cout << "  7. Server status display (First Fit run)\n";
     std::cout << LINE_THIN << "\n";
     std::cout << "  Choice: ";
 }
@@ -157,6 +158,55 @@ static void runWithStrategy(AllocationStrategy& strategy,
     std::cout << "\n" << ReportGenerator::generate(m) << "\n";
 }
 
+// ─── Server status display runner ─────────────────────────────────────────────
+
+static void runServerStatus(const std::vector<ServerSpec>& serverSpecs,
+                            const std::vector<JobSpec>&    jobSpecs,
+                            const WorkloadConfig&           cfg,
+                            int maxTick)
+{
+    // Build fresh DataCenter.
+    DataCenter dc;
+    for (const auto& spec : serverSpecs) {
+        switch (spec.kind) {
+            case ServerKind::Compute:
+                dc.addServer(std::make_unique<ComputeServer>(spec.id, spec.capacity));
+                break;
+            case ServerKind::GPU:
+                dc.addServer(std::make_unique<GPUServer>(spec.id, spec.capacity));
+                break;
+            case ServerKind::Storage:
+                dc.addServer(std::make_unique<StorageServer>(spec.id, spec.capacity));
+                break;
+        }
+    }
+
+    // Build fresh Job vector.
+    std::vector<Job> jobs;
+    jobs.reserve(jobSpecs.size());
+    for (const auto& spec : jobSpecs) {
+        jobs.emplace_back(spec.id, spec.requirements,
+                          spec.priority, spec.arrivalTick, spec.duration);
+    }
+
+    // Run simulation with First Fit.
+    FirstFit         ff;
+    Scheduler        sched{ff, dc};
+    SimulationEngine engine{sched, dc, maxTick};
+    engine.setWorkload(std::move(jobs));
+
+    std::cout << "\n  Running First Fit for server status display on "
+              << cfg.jobCount << " job(s) / " << cfg.serverCount
+              << " server(s)  [seed=" << cfg.seed << "] ...\n\n";
+
+    engine.run();
+
+    // Delegate all formatting to ReportGenerator (architecture §3.10).
+    std::cout << ReportGenerator::generateServerStatus(
+                     dc, engine.getEvents(), engine.getJobs())
+              << "\n";
+}
+
 // ─── Comparison runner ─────────────────────────────────────────────────────────
 
 static void runComparison(const std::vector<ServerSpec>& serverSpecs,
@@ -243,7 +293,7 @@ int main() {
         const std::string ch = trimmed(choice);
 
         if (ch.empty()) {
-            std::cout << "\n  Please enter a menu option (1-6).\n";
+            std::cout << "\n  Please enter a menu option (1-7).\n";
             continue;
         }
 
@@ -271,9 +321,13 @@ int main() {
             std::cout << "\n  Goodbye!\n\n";
             running = false;
 
+        } else if (ch == "7") {
+            auto [servers, jobs] = generateWorkload();
+            runServerStatus(servers, jobs, cfg, MAX_TICK);
+
         } else {
             std::cout << "\n  Invalid choice '" << ch
-                      << "'. Please enter a number between 1 and 6.\n";
+                      << "'. Please enter a number between 1 and 7.\n";
         }
     }
 
