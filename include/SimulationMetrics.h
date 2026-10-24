@@ -46,6 +46,8 @@ struct SimulationMetrics {
     int cancelled      = 0;
     int failed         = 0;
     int stillActive    = 0;   ///< PENDING, QUEUED or RUNNING when the simulation stopped.
+    int queued         = 0;   ///< Jobs in QUEUED state when the simulation stopped.
+    int running        = 0;   ///< Jobs in RUNNING state when the simulation stopped.
 
     /// completed / totalSubmitted * 100.  nullopt when totalSubmitted == 0.
     std::optional<double> completionRate;
