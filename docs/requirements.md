@@ -18,7 +18,7 @@ Build a C++17 CLI-based discrete-event simulator that models a small data center
 
 ## Optional extensions
 - Priority scheduling and starvation prevention.
-- Workload generation.
+- Workload generation (implemented).
 - CSV report export.
 - Server failures and recovery.
 - Job reallocation.

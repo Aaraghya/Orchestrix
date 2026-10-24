@@ -30,6 +30,7 @@ add_library(orchestrix_core
     src/MetricsCollector.cpp
     src/StrategyComparison.cpp
     src/ReportGenerator.cpp
+    src/WorkloadGenerator.cpp
 )
 
 target_include_directories(orchestrix_core
@@ -84,4 +85,35 @@ if(BUILD_TESTING)
         PRIVATE orchestrix_core
     )
     add_test(NAME Milestone4Tests COMMAND test_milestone4)
+
+    # ── Milestone 5 ──────────────────────────────────────────────────────────
+    add_executable(test_milestone5
+        tests/test_milestone5.cpp
+    )
+    target_link_libraries(test_milestone5
+        PRIVATE orchestrix_core
+    )
+    add_test(NAME Milestone5Tests COMMAND test_milestone5)
+
+    # ── Milestone 6 ──────────────────────────────────────────────────────────
+    add_executable(test_milestone6
+        tests/test_milestone6.cpp
+    )
+    target_link_libraries(test_milestone6
+        PRIVATE orchestrix_core
+    )
+    add_test(NAME Milestone6Tests COMMAND test_milestone6)
+
+    # ── Milestone 6: CLI smoke tests ─────────────────────────────────────────
+    # Drive the real executable with scripted stdin.  Each scenario checks exit
+    # status and one output marker through tests/cli_smoke_test.cmake.
+    foreach(scenario exit eof single compare)
+        add_test(NAME Cli_${scenario}
+            COMMAND ${CMAKE_COMMAND}
+                -DCLI=$<TARGET_FILE:orchestrix>
+                -DSCENARIO=${scenario}
+                -DINPUT=${CMAKE_CURRENT_BINARY_DIR}/cli_input_${scenario}.txt
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli_smoke_test.cmake
+        )
+    endforeach()
 endif()

@@ -111,8 +111,12 @@ void SimulationEngine::run() {
     }
 
     // Reached maxTick without all jobs finishing.
-    m_hitMaxTick = true;
-    m_finished   = true;
+    // The for-loop increments m_currentTick one last time before the condition
+    // fails, so restore it to the last tick actually processed.  Otherwise
+    // currentTick() (and therefore elapsedTicks) would report maxTick + 1.
+    m_currentTick = m_maxTick;
+    m_hitMaxTick  = true;
+    m_finished    = true;
     logEvent(m_maxTick, EventType::SIM_MAX_TICK, "", "",
              "Tick limit " + std::to_string(m_maxTick) + " reached");
 }

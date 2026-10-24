@@ -175,7 +175,7 @@ Track:
 - Rejected jobs.
 - Cancelled jobs.
 - Failed jobs.
-- Jobs still queued or running when a simulation limit is reached.
+- Jobs still awaiting arrival, queued or running when a simulation limit is reached (`stillActive`).
 
 Counts must be mutually consistent with job states.
 

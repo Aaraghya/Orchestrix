@@ -66,3 +66,16 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Local verification builds
+build-verify/
+
+# AI agent instructions (kept locally, not published)
+AGENTS.md
+
+# One-off diagnostic programs
+tests/diagnostic_*.cpp
+
+# IDE state
+.vscode/
+.idea/

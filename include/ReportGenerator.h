@@ -34,7 +34,12 @@ private:
     ReportGenerator() = delete;
 
     /// Formats an optional<double> as a percentage string or "N/A".
+    /// Use for values already stored as percentages (0-100).
     [[nodiscard]] static std::string fmtPct(const std::optional<double>& v);
+
+    /// Formats an optional<double> that is a [0,1] fraction as a percentage
+    /// string (multiplies by 100) or "N/A". Used for resource utilization.
+    [[nodiscard]] static std::string fmtFracAsPct(const std::optional<double>& v);
 
     /// Formats an optional<double> with a given suffix or "N/A".
     [[nodiscard]] static std::string fmtOpt(const std::optional<double>& v,

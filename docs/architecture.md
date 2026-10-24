@@ -82,6 +82,8 @@ Responsibilities:
 
 The ResourceManager is the authoritative coordinator for allocation accounting. A failed reservation must not leave partially allocated resources.
 
+**Implementation note:** the current build places this responsibility directly in `Server::reserveResources()` / `Server::releaseResources()`, which validate atomically, with the Scheduler as the caller. There is no separate ResourceManager class yet; see §9.
+
 ### 3.6 AllocationStrategy
 
 An abstract interface for selecting a suitable server.
@@ -137,11 +139,11 @@ Responsibilities:
 - Accept an optional random seed.
 - Produce a workload that can be reused for strategy comparisons.
 
-Manual job entry may be handled separately by the CLI.
+The current CLI uses generated workloads. Manual job entry remains a possible extension.
 
 ### 3.10 MetricsCollector
 
-Tracks simulation performance, including:
+Computes simulation performance from a completed run, including:
 - Jobs completed, rejected, cancelled and failed.
 - Average waiting time.
 - Throughput.
@@ -169,8 +171,10 @@ Formats simulation results for users.
 Responsibilities:
 - Display summary metrics.
 - Compare allocation strategies.
-- Export supported results to CSV or text.
+- Produce text reports for individual runs and strategy comparisons.
 - Keep report formatting separate from simulation logic.
+
+CSV export is an optional extension and is not implemented in the current build.
 
 ### 3.13 CLI
 
@@ -266,3 +270,14 @@ The initial implementation is a local CLI simulation.
 It does not require real cloud infrastructure, networking, distributed execution, a database, a graphical interface or machine learning.
 
 Prioritize a correct, testable simulation engine before optional failure recovery, migration and energy-aware scheduling.
+
+## 9. Implementation Status
+
+The implemented milestones follow this design with the following clarifications:
+
+- **ResourceManager (§3.5):** resource accounting is implemented atomically inside `Server`. The Scheduler obtains a server from the selected strategy and calls `Server::reserveResources()`; no separate ResourceManager class exists in the current build.
+- **FailureManager (§3.11):** not implemented; server failure and recovery remain optional extensions.
+- **ReportGenerator (§3.12):** produces text reports only; CSV export is not implemented.
+- **WorkloadGenerator (§3.9):** generates reproducible synthetic workloads; the CLI does not offer manual job entry.
+- **MetricsCollector (§3.10):** stateless; derives all metrics from the completed engine's job states and event log.
+- **Strategy comparison:** every strategy runs with a fresh `DataCenter`, job vector, `Scheduler` and `SimulationEngine`, so one run cannot mutate another run's state.

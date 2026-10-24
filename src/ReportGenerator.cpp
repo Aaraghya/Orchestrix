@@ -13,6 +13,15 @@ std::string ReportGenerator::fmtPct(const std::optional<double>& v) {
     return ss.str();
 }
 
+/// Formats an optional<double> that is a [0,1] fraction as a percentage string
+/// (multiplies by 100 before printing) or "N/A".
+std::string ReportGenerator::fmtFracAsPct(const std::optional<double>& v) {
+    if (!v.has_value()) return "N/A";
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(1) << (v.value() * 100.0) << "%";
+    return ss.str();
+}
+
 std::string ReportGenerator::fmtOpt(const std::optional<double>& v,
                                     const std::string& suffix) {
     if (!v.has_value()) return "N/A";
@@ -57,10 +66,10 @@ std::string ReportGenerator::generate(const SimulationMetrics& m) {
     out << "    Throughput     : " << fmtOpt(m.throughput, "jobs/tick") << "\n";
 
     out << "\n  Resource Utilization (resource-time accounting)\n";
-    out << "    CPU     : " << fmtPct(m.cpuUtilization)     << "\n";
-    out << "    RAM     : " << fmtPct(m.ramUtilization)     << "\n";
-    out << "    Storage : " << fmtPct(m.storageUtilization) << "\n";
-    out << "    GPU     : " << fmtPct(m.gpuUtilization)     << "\n";
+    out << "    CPU     : " << fmtFracAsPct(m.cpuUtilization)     << "\n";
+    out << "    RAM     : " << fmtFracAsPct(m.ramUtilization)     << "\n";
+    out << "    Storage : " << fmtFracAsPct(m.storageUtilization) << "\n";
+    out << "    GPU     : " << fmtFracAsPct(m.gpuUtilization)     << "\n";
     out << divider << "\n";
 
     return out.str();
