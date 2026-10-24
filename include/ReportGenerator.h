@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SimulationEvent.h"
 #include "SimulationMetrics.h"
 
 #include <string>
@@ -29,6 +30,11 @@ public:
     /// Prints one section per strategy using generate(), separated by dividers.
     [[nodiscard]] static std::string generateComparison(
         const std::vector<SimulationMetrics>& results);
+
+    /// Produces a formatted report of simulation events matching a given event type.
+    [[nodiscard]] static std::string generateFilteredEvents(
+        const std::vector<SimulationEvent>& events,
+        EventType filterType);
 
 private:
     ReportGenerator() = delete;
