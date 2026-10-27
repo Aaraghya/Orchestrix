@@ -1,6 +1,9 @@
 #include "ReportGenerator.h"
+#include "SimulationEngine.h"
 
+#include <algorithm>
 #include <iomanip>
+#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -283,4 +286,210 @@ std::string ReportGenerator::generateServerStatus(
 
     out << header << "\n";
     return out.str();
+}
+
+std::string ReportGenerator::formatStrategyName(const std::string& name) {
+    if (name == "FirstFit")     return "First Fit";
+    if (name == "BestFit")      return "Best Fit";
+    if (name == "LoadBalanced") return "Load Balanced";
+    return name;
+}
+
+ResultsSummary ReportGenerator::buildResultsSummary(const SimulationMetrics& m) {
+    ResultsSummary s;
+    s.strategyName = formatStrategyName(m.strategyName);
+    s.jobsProcessed = m.totalSubmitted;
+    s.jobsAllocated = m.completed + m.running;
+    s.jobsRejected  = m.rejected;
+    s.avgAllocationTime = "N/A";
+
+    std::ostringstream ru;
+    ru << "CPU: " << fmtFracAsPct(m.cpuUtilization)
+       << " | RAM: " << fmtFracAsPct(m.ramUtilization)
+       << " | Storage: " << fmtFracAsPct(m.storageUtilization)
+       << " | GPU: " << fmtFracAsPct(m.gpuUtilization);
+    s.resourceUtilization = ru.str();
+    return s;
+}
+
+std::vector<AllocationRecord> ReportGenerator::buildAllocationRecords(
+    const std::vector<Job>&             jobs,
+    const std::vector<SimulationEvent>& events)
+{
+    std::unordered_map<std::string, std::string> assignedServers;
+    for (const auto& ev : events) {
+        if (ev.type == EventType::JOB_STARTED) {
+            assignedServers[ev.jobId] = ev.serverId;
+        }
+    }
+
+    std::vector<AllocationRecord> records;
+    records.reserve(jobs.size());
+
+    for (const auto& job : jobs) {
+        AllocationRecord rec;
+        rec.jobId = job.getId();
+
+        auto it = assignedServers.find(job.getId());
+        if (it != assignedServers.end()) {
+            rec.serverId = it->second;
+        } else {
+            rec.serverId = "-";
+        }
+
+        switch (job.getState()) {
+            case JobState::COMPLETED:
+                rec.status = "Allocated";
+                break;
+            case JobState::RUNNING:
+                rec.status = "Running";
+                break;
+            case JobState::REJECTED:
+                rec.status = "Rejected";
+                rec.serverId = "-";
+                break;
+            case JobState::QUEUED:
+                rec.status = "Queued";
+                rec.serverId = "-";
+                break;
+            case JobState::PENDING:
+                rec.status = "Pending";
+                rec.serverId = "-";
+                break;
+            case JobState::CANCELLED:
+                rec.status = "Cancelled";
+                break;
+            case JobState::FAILED:
+                rec.status = "Failed";
+                break;
+        }
+
+        records.push_back(std::move(rec));
+    }
+
+    return records;
+}
+
+std::vector<AllocationRecord> ReportGenerator::buildAllocationRecords(
+    const SimulationEngine& engine)
+{
+    return buildAllocationRecords(engine.getJobs(), engine.getEvents());
+}
+
+std::string ReportGenerator::generateResultsPage(
+    const ResultsSummary&                summary,
+    const std::vector<AllocationRecord>& records,
+    int                                  page,
+    int                                  pageSize)
+{
+    if (pageSize < 1) pageSize = 1;
+
+    std::ostringstream out;
+    const std::string lineWide(60, '=');
+    const std::string lineThin(60, '-');
+
+    out << lineWide << "\n";
+    out << "                  ORCHESTRIX SIMULATION\n";
+    out << lineWide << "\n\n";
+
+    out << "Strategy: " << summary.strategyName << "\n";
+    out << "Jobs processed: " << summary.jobsProcessed << "\n";
+    out << "Jobs allocated: " << summary.jobsAllocated << "\n";
+    out << "Jobs rejected: " << summary.jobsRejected << "\n";
+    out << "Average allocation time: " << summary.avgAllocationTime << "\n";
+    out << "Resource utilization: " << summary.resourceUtilization << "\n\n";
+
+    out << lineThin << "\n";
+    out << "                   ALLOCATION DETAILS\n";
+    out << lineThin << "\n\n";
+
+    out << "Job ID    Server ID    Status\n";
+    out << "--------------------------------\n";
+
+    const int total = static_cast<int>(records.size());
+    const int totalPages = (total == 0) ? 1 : (total + pageSize - 1) / pageSize;
+
+    int clampedPage = page;
+    if (clampedPage < 1) clampedPage = 1;
+    if (clampedPage > totalPages) clampedPage = totalPages;
+
+    int startIdx = 0;
+    int endIdx   = 0;
+
+    if (total == 0) {
+        out << "  (No jobs to display)\n";
+    } else {
+        startIdx = (clampedPage - 1) * pageSize;
+        endIdx   = std::min(startIdx + pageSize, total);
+        for (int i = startIdx; i < endIdx; ++i) {
+            const auto& rec = records[static_cast<std::size_t>(i)];
+            out << std::left
+                << std::setw(10) << rec.jobId
+                << std::setw(13) << (rec.serverId.empty() ? "-" : rec.serverId)
+                << rec.status
+                << "\n";
+        }
+    }
+
+    out << "\n" << lineThin << "\n";
+    if (total == 0) {
+        out << "Showing results 0–0 of 0\n";
+    } else {
+        out << "Showing results " << (startIdx + 1) << "–" << endIdx
+            << " of " << total << "\n";
+    }
+    out << "[N] Next page | [P] Previous page | [Q] Return to menu\n";
+    out << "> ";
+
+    return out.str();
+}
+
+bool ReportGenerator::showPaginatedResults(
+    std::istream&                        in,
+    std::ostream&                        out,
+    const ResultsSummary&                summary,
+    const std::vector<AllocationRecord>& records,
+    int                                  pageSize)
+{
+    if (pageSize < 1) pageSize = 1;
+
+    const int total = static_cast<int>(records.size());
+    const int totalPages = (total == 0) ? 1 : (total + pageSize - 1) / pageSize;
+    int currentPage = 1;
+
+    auto trim = [](const std::string& s) -> std::string {
+        std::size_t a = s.find_first_not_of(" \t\r\n");
+        if (a == std::string::npos) return {};
+        std::size_t b = s.find_last_not_of(" \t\r\n");
+        return s.substr(a, b - a + 1);
+    };
+
+    while (true) {
+        out << generateResultsPage(summary, records, currentPage, pageSize);
+
+        std::string line;
+        if (!std::getline(in, line)) {
+            return false;
+        }
+
+        const std::string cmd = trim(line);
+        if (cmd == "N" || cmd == "n") {
+            if (currentPage < totalPages) {
+                ++currentPage;
+            } else {
+                out << "\n  Already on the final page.\n\n";
+            }
+        } else if (cmd == "P" || cmd == "p") {
+            if (currentPage > 1) {
+                --currentPage;
+            } else {
+                out << "\n  Already on the first page.\n\n";
+            }
+        } else if (cmd == "Q" || cmd == "q") {
+            return true;
+        } else {
+            out << "\n  Invalid command '" << cmd
+                << "'. Please enter [N] Next page, [P] Previous page, or [Q] Return to menu.\n\n";
+        }
+    }
 }

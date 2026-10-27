@@ -104,6 +104,15 @@ if(BUILD_TESTING)
     )
     add_test(NAME Milestone6Tests COMMAND test_milestone6)
 
+    # ── Paginated Results Display Tests ───────────────────────────────────────
+    add_executable(test_results_pagination
+        tests/test_results_pagination.cpp
+    )
+    target_link_libraries(test_results_pagination
+        PRIVATE orchestrix_core
+    )
+    add_test(NAME ResultsPaginationTests COMMAND test_results_pagination)
+
     # ── Milestone 6: CLI smoke tests ─────────────────────────────────────────
     # Drive the real executable with scripted stdin.  Each scenario checks exit
     # status and one output marker through tests/cli_smoke_test.cmake.

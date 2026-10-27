@@ -162,9 +162,13 @@ static void runWithStrategy(AllocationStrategy& strategy,
 
     engine.run();
 
-    // Collect and display.
+    // Collect metrics and display paginated results screen.
     SimulationMetrics m = MetricsCollector::collect(engine, dc, strategy.name());
-    std::cout << "\n" << ReportGenerator::generate(m) << "\n";
+    auto summary = ReportGenerator::buildResultsSummary(m);
+    auto records = ReportGenerator::buildAllocationRecords(engine);
+
+    std::cout << "\n";
+    ReportGenerator::showPaginatedResults(std::cin, std::cout, summary, records);
 }
 
 // ─── Server status display runner ─────────────────────────────────────────────
