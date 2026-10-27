@@ -50,19 +50,26 @@ static void printBanner() {
 
 
 static void printMenu() {
-    std::cout << LINE_THIN << "\n";
-    std::cout << "  MAIN MENU\n";
-    std::cout << LINE_THIN << "\n";
+    std::cout << "MAIN MENU\n";
+    std::cout << LINE_WIDE << "\n";
     std::cout << "  1. Run simulation - First Fit\n";
+    std::cout << "     First compatible server with enough resources.\n\n";
     std::cout << "  2. Run simulation - Best Fit\n";
+    std::cout << "     Compatible server with the lowest Best Fit score.\n\n";
     std::cout << "  3. Run simulation - Load Balanced\n";
+    std::cout << "     Compatible server with the lowest projected utilization.\n\n";
     std::cout << "  4. Compare all three strategies\n";
-    std::cout << "  5. Configure workload (job count / seed)\n";
+    std::cout << "     Compare performance using the same generated workload.\n\n";
+    std::cout << "  5. Configure workload (Job count / seed)\n";
+    std::cout << "     Adjust workload generation settings.\n\n";
     std::cout << "  6. Exit\n";
+    std::cout << "     Close Orchestrix.\n\n";
     std::cout << "  7. Server status display (First Fit run)\n";
+    std::cout << "     View server resource-allocation status.\n\n";
     std::cout << "  8. Filter simulation event log by type\n";
-    std::cout << LINE_THIN << "\n";
-    std::cout << "  Choice: ";
+    std::cout << "     View events matching a selected event type.\n";
+    std::cout << LINE_WIDE << "\n";
+    std::cout << "Choice: ";
 }
 
 /// Read an integer from stdin, returning false and leaving \p out unchanged if
