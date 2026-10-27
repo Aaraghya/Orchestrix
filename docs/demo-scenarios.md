@@ -42,6 +42,7 @@ The menu has eight options:
 - Type the option number and press Enter.
 - Option 5 accepts blank input to keep the current value. Invalid or out-of-range input is also treated as "keep".
 - Options 1–4 and 7–8 always generate a fresh workload from the current settings.
+- Options 1–3 end with a paginated results screen: `N` for the next page, `P` for the previous page, and `Q` to return to the menu.
 - The same settings and seed always produce the same workload and the same results.
 
 **Default workload**
@@ -54,7 +55,22 @@ The menu has eight options:
 | Max arrival | 50 ticks | Fixed for this build |
 | Max duration | 10 ticks | Fixed for this build |
 
-**Reading a report**
+**Reading the paginated results screen (Options 1–3)**
+
+| Field | Meaning |
+|---|---|
+| `Strategy` | Display name of the strategy that produced the run. |
+| `Jobs processed` | Total jobs in the generated workload. |
+| `Jobs allocated` | Jobs that completed or were still running at the stop tick. |
+| `Jobs rejected` | Jobs rejected as permanently infeasible. |
+| `Average allocation time` | Always `N/A`: allocation time is not measured in this build. |
+| `Resource utilization` | Resource-time utilization per dimension, computed over the whole run. |
+| `Showing results X–Y of N` | Records on the current page and the total record count. |
+| `[N]` / `[P]` / `[Q]` | Next page, previous page, or return to the main menu. |
+
+Each page shows at most 20 job records, so the 20-job default workload fits on a single page. Only Options 1–3 use this paginated screen; Options 4, 7, and 8 keep their existing detailed reports.
+
+**Reading the detailed reports (Option 4)**
 
 | Field | Meaning |
 |---|---|
@@ -69,53 +85,63 @@ The menu has eight options:
 
 ## Demo 1 — Individual strategy run (Options 1–3)
 
-**Goal:** run one strategy and read its report.
+**Goal:** run one strategy and read its paginated results screen.
 
 **Steps**
 
 1. Choose `1` (First Fit).
 2. Leave the defaults unchanged: 20 jobs, 5 servers, seed 42.
-3. Choose `6` to exit.
+3. Review the results page. This 20-job workload fits on one page; larger workloads show at most 20 records per page, with `N` for next, `P` for previous, and `Q` to return to the menu.
+4. Choose `6` to exit.
 
 **Verified output**
 
 ```
--------------------------------------------------------
-  Strategy  : FirstFit
-  Status    : Completed normally
-  Elapsed   : 54 tick(s)
+============================================================
+                  ORCHESTRIX SIMULATION
+============================================================
 
-  Job Outcomes
-    Submitted   : 20
-    Completed   : 18  (90.0%)
-    Rejected    : 2  (10.0%)
-    Cancelled   : 0
-    Failed      : 0
-    Still active: 0
-      Queued    : 0
-      Running   : 0
+Strategy: First Fit
+Jobs processed: 20
+Jobs allocated: 18
+Jobs rejected: 2
+Average allocation time: N/A
+Resource utilization: CPU: 9.9% | RAM: 8.2% | Storage: 3.2% | GPU: 7.2%
 
-  Performance
-    Avg wait time  : 0.000 tick(s)  [sample n=18]
-    Throughput     : 0.333 jobs/tick
+------------------------------------------------------------
+                   ALLOCATION DETAILS
+------------------------------------------------------------
 
-  Resource Utilization (resource-time accounting)
-    CPU     : 9.9%
-    RAM     : 8.2%
-    Storage : 3.2%
-    GPU     : 7.2%
--------------------------------------------------------
+Job ID    Server ID    Status
+--------------------------------
+job-0     srv-3        Allocated
+job-1     srv-0        Allocated
+job-2     srv-0        Allocated
+job-3     srv-2        Allocated
+job-4     -            Rejected
+job-5     srv-2        Allocated
+job-6     srv-2        Allocated
+job-7     srv-4        Allocated
+job-8     srv-0        Allocated
+job-9     srv-1        Allocated
+job-10    srv-1        Allocated
+job-11    srv-0        Allocated
+job-12    srv-2        Allocated
+job-13    srv-2        Allocated
+job-14    srv-1        Allocated
+job-15    -            Rejected
+job-16    srv-4        Allocated
+job-17    srv-0        Allocated
+job-18    srv-1        Allocated
+job-19    srv-0        Allocated
+
+------------------------------------------------------------
+Showing results 1–20 of 20
+[N] Next page | [P] Previous page | [Q] Return to menu
+> Q
 ```
 
-Options 2 and 3 produce identical values for this seed because the workload has no scheduling contention:
-
-| Option | Strategy | Elapsed | Completed | Rejected | Avg wait | Throughput |
-|---|---|---:|---:|---:|---:|---:|
-| 1 | FirstFit | 54 | 18 | 2 | 0.000 | 0.333 |
-| 2 | BestFit | 54 | 18 | 2 | 0.000 | 0.333 |
-| 3 | LoadBalanced | 54 | 18 | 2 | 0.000 | 0.333 |
-
-All three also report the same utilization: CPU 9.9%, RAM 8.2%, Storage 3.2%, GPU 7.2%.
+Options 2 and 3 show the same summary values for this seed because the workload has no scheduling contention: 20 processed, 18 allocated, 2 rejected, and the same utilization. The detailed timing metrics (elapsed ticks, average wait, throughput) remain available in the Option 4 comparison report (Demo 2).
 
 ---
 
@@ -339,7 +365,7 @@ Choosing `4` prints:
 
 | Step | Feature | Inputs | What to emphasize |
 |---:|---|---|---|
-| 1 | Individual run | `1`, `6` | Baseline report and metric meanings |
+| 1 | Individual run | `1`, `Q`, `6` | Paginated results screen, navigation, and summary fields |
 | 2 | Strategy comparison | `5`, Enter, Enter, `84`, `4` | Fresh state per strategy and the summary table |
 | 3 | Constrained resources | `5`, `50`, `1`, `42`, `4` | Rejection at arrival and `GPU : N/A` |
 | 4 | Server status | `5`, `6`, `3`, `7`, `7` | Resource reservation and release over time |

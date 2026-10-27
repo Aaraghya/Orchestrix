@@ -5,8 +5,28 @@
 #include "SimulationEvent.h"
 #include "SimulationMetrics.h"
 
+#include <iosfwd>
 #include <string>
 #include <vector>
+
+class SimulationEngine;
+
+/// A single record in the allocation details table.
+struct AllocationRecord {
+    std::string jobId;
+    std::string serverId;  ///< Assigned server ID, or "-" if none.
+    std::string status;    ///< Job outcome status ("Allocated", "Rejected", "Queued", etc.).
+};
+
+/// Summary metrics displayed at the top of the simulation results screen.
+struct ResultsSummary {
+    std::string strategyName;          ///< e.g. "First Fit", "Best Fit", "Load Balanced".
+    int         jobsProcessed = 0;     ///< Total jobs submitted / processed.
+    int         jobsAllocated = 0;     ///< Jobs successfully allocated / completed.
+    int         jobsRejected  = 0;     ///< Jobs rejected as infeasible.
+    std::string avgAllocationTime;     ///< "N/A" (allocation time is not measured).
+    std::string resourceUtilization;   ///< e.g. "CPU: 9.9% | RAM: 8.2% | Storage: 3.2% | GPU: 7.2%".
+};
 
 /// Converts SimulationMetrics into human-readable text reports.
 ///
@@ -60,6 +80,49 @@ public:
     [[nodiscard]] static std::string generateFilteredEvents(
         const std::vector<SimulationEvent>& events,
         EventType filterType);
+
+    /// Normalizes internal strategy identifiers ("FirstFit") into display format ("First Fit").
+    [[nodiscard]] static std::string formatStrategyName(const std::string& name);
+
+    /// Builds a ResultsSummary from SimulationMetrics.
+    [[nodiscard]] static ResultsSummary buildResultsSummary(const SimulationMetrics& m);
+
+    /// Reconstructs allocation records from a job list and simulation event log.
+    [[nodiscard]] static std::vector<AllocationRecord> buildAllocationRecords(
+        const std::vector<Job>&             jobs,
+        const std::vector<SimulationEvent>& events);
+
+    /// Reconstructs allocation records from a finished SimulationEngine.
+    [[nodiscard]] static std::vector<AllocationRecord> buildAllocationRecords(
+        const SimulationEngine& engine);
+
+    /// Formats a single page of the paginated simulation results screen.
+    ///
+    /// \param summary    Simulation summary information.
+    /// \param records    Complete collection of job allocation records.
+    /// \param page       1-indexed page number.
+    /// \param pageSize   Maximum number of records per page (default 20).
+    ///                   Values below 1 are clamped to 1.
+    [[nodiscard]] static std::string generateResultsPage(
+        const ResultsSummary&                summary,
+        const std::vector<AllocationRecord>& records,
+        int                                  page,
+        int                                  pageSize = 20);
+
+    /// Interactive pagination loop.
+    ///
+    /// Reads navigation commands from \p in and prints pages to \p out.
+    /// Supports N/n (next page), P/p (previous page), and Q/q (quit / return to menu).
+    /// Handles invalid commands and EOF safely.  A non-positive \p pageSize is
+    /// clamped to 1.
+    ///
+    /// \return true if the user exited normally via 'Q'/'q', false if EOF was reached.
+    static bool showPaginatedResults(
+        std::istream&                        in,
+        std::ostream&                        out,
+        const ResultsSummary&                summary,
+        const std::vector<AllocationRecord>& records,
+        int                                  pageSize = 20);
 
 private:
     ReportGenerator() = delete;
