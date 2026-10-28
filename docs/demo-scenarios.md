@@ -1,10 +1,10 @@
 # Orchestrix — Demo Guide
 
-This guide covers every major feature of the Orchestrix command-line interface. Each scenario is reproducible: the workload generator is seeded, the simulation is deterministic, and we captured every output shown below from the current build.
+This guide demonstrates every major Orchestrix CLI feature. Seeded workloads make the scenarios reproducible; outputs below are excerpts from the current build.
 
 ---
 
-## Before you start
+## Quick Start
 
 Build and run from the repository root:
 
@@ -14,36 +14,35 @@ cmake --build build
 ./build/orchestrix.exe
 ```
 
-On Windows the executable is `build\orchestrix.exe`. Run the tests with:
+On Windows the executable is `build\orchestrix.exe`.
 
-```bash
-ctest --test-dir build --output-on-failure
-```
+The program prints the current workload settings and these options:
 
-The menu has eight options:
-
-```
-------------------------------------------------------------
-  MAIN MENU
-------------------------------------------------------------
+```text
   1. Run simulation - First Fit
+     First compatible server with enough resources.
   2. Run simulation - Best Fit
+     Compatible server with the lowest Best Fit score.
   3. Run simulation - Load Balanced
+     Compatible server with the lowest projected utilization.
   4. Compare all three strategies
-  5. Configure workload (job count / seed)
+     Compare performance using the same generated workload.
+  5. Configure workload (Job count / seed)
+     Adjust workload generation settings.
   6. Exit
   7. Server status display (First Fit run)
   8. Filter simulation event log by type
-------------------------------------------------------------
+Choice:
 ```
 
 **Input conventions**
 
-- Type the option number and press Enter.
-- Option 5 accepts blank input to keep the current value. Invalid or out-of-range input is also treated as "keep".
-- Options 1–4 and 7–8 always generate a fresh workload from the current settings.
-- Options 1–3 end with a paginated results screen: `N` for the next page, `P` for the previous page, and `Q` to return to the menu.
-- The same settings and seed always produce the same workload and the same results.
+- Type an option number and press Enter.
+- Option 5 keeps the current value when you enter a blank or invalid value.
+- Options 1–4 and 7–8 generate a fresh workload from the current settings.
+- Options 1–3 use a paginated screen: `N` next, `P` previous, `Q` back to the menu, 20 records per page.
+- Option 8 accepts `1`–`4` or `arrival`, `start`, `completion`, and `rejection`.
+- The same settings and seed reproduce the same workload and results. Settings persist until changed or the program exits.
 
 **Default workload**
 
@@ -52,55 +51,36 @@ The menu has eight options:
 | Jobs | 20 | Configurable 1–1000 |
 | Servers | 5 | Configurable 1–100 |
 | Seed | 42 | Configurable 0–4294967295 |
-| Max arrival | 50 ticks | Fixed for this build |
-| Max duration | 10 ticks | Fixed for this build |
+| Max arrival / duration | 50 / 10 ticks | Fixed for this build |
 
-**Reading the paginated results screen (Options 1–3)**
+**Reading the results**
 
-| Field | Meaning |
-|---|---|
-| `Strategy` | Display name of the strategy that produced the run. |
-| `Jobs processed` | Total jobs in the generated workload. |
-| `Jobs allocated` | Jobs that completed or were still running at the stop tick. |
-| `Jobs rejected` | Jobs rejected as permanently infeasible. |
-| `Average allocation time` | Always `N/A`: allocation time is not measured in this build. |
-| `Resource utilization` | Resource-time utilization per dimension, computed over the whole run. |
-| `Showing results X–Y of N` | Records on the current page and the total record count. |
-| `[N]` / `[P]` / `[Q]` | Next page, previous page, or return to the main menu. |
+The Options 1–3 screen shows the strategy, jobs processed, jobs allocated (completed plus running), jobs rejected, `Average allocation time` (always `N/A`), utilization, and one row per job. A missing server is shown as `-`; statuses include `Allocated`, `Running`, `Rejected`, `Queued`, and `Pending`.
 
-Each page shows at most 20 job records, so the 20-job default workload fits on a single page. Only Options 1–3 use this paginated screen; Options 4, 7, and 8 keep their existing detailed reports.
-
-**Reading the detailed reports (Option 4)**
-
-| Field | Meaning |
-|---|---|
-| `Completed` / `Rejected` | Final job counts. Percentages use submitted jobs as the denominator. |
-| `Still active` | Jobs still `PENDING`, `QUEUED`, or `RUNNING` at the stop tick. `Queued` and `Running` are its subsets. |
-| `Avg wait time` | Mean of `startTick − arrivalTick` over jobs that actually started. `n` is the number of samples. |
-| `Throughput` | `completed / elapsedTicks` jobs per tick. |
-| `CPU`, `RAM`, `Storage`, `GPU` | Resource-time utilization: allocated resource-ticks divided by capacity-ticks over the whole run. |
-| `N/A` | The metric has no valid denominator, for example zero GPU capacity. It is not a zero result. |
+Option 4 adds elapsed ticks, waiting time, throughput, a queued/running breakdown, and a comparison summary. Percentages use submitted jobs as the denominator. In these detailed reports, `N/A` means no valid value (no samples or a zero denominator), not zero.
 
 ---
 
 ## Demo 1 — Individual strategy run (Options 1–3)
 
-**Goal:** run one strategy and read its paginated results screen.
+**Goal:** run one strategy and read its paginated results.
 
 **Steps**
 
-1. Choose `1` (First Fit).
-2. Leave the defaults unchanged: 20 jobs, 5 servers, seed 42.
-3. Review the results page. This 20-job workload fits on one page; larger workloads show at most 20 records per page, with `N` for next, `P` for previous, and `Q` to return to the menu.
-4. Choose `6` to exit.
+1. Keep the defaults: 20 jobs, 5 servers, seed 42.
+2. Choose `1` (First Fit).
+3. Review the page; use `N` / `P` if needed.
+4. Choose `Q`, then `6` to exit.
 
-**Verified output**
+**What to observe**
 
-```
-============================================================
-                  ORCHESTRIX SIMULATION
-============================================================
+- The summary reports processed, allocated, and rejected jobs plus utilization.
+- Rejected jobs show no server ID.
+- For seed 42, Options 2 and 3 produce the same summary values, but their server assignments differ.
 
+**Sample output (excerpt)**
+
+```text
 Strategy: First Fit
 Jobs processed: 20
 Jobs allocated: 18
@@ -108,71 +88,36 @@ Jobs rejected: 2
 Average allocation time: N/A
 Resource utilization: CPU: 9.9% | RAM: 8.2% | Storage: 3.2% | GPU: 7.2%
 
-------------------------------------------------------------
-                   ALLOCATION DETAILS
-------------------------------------------------------------
-
 Job ID    Server ID    Status
 --------------------------------
 job-0     srv-3        Allocated
 job-1     srv-0        Allocated
-job-2     srv-0        Allocated
-job-3     srv-2        Allocated
 job-4     -            Rejected
-job-5     srv-2        Allocated
-job-6     srv-2        Allocated
-job-7     srv-4        Allocated
-job-8     srv-0        Allocated
-job-9     srv-1        Allocated
-job-10    srv-1        Allocated
-job-11    srv-0        Allocated
-job-12    srv-2        Allocated
-job-13    srv-2        Allocated
-job-14    srv-1        Allocated
-job-15    -            Rejected
-job-16    srv-4        Allocated
-job-17    srv-0        Allocated
-job-18    srv-1        Allocated
-job-19    srv-0        Allocated
-
-------------------------------------------------------------
+...
 Showing results 1–20 of 20
 [N] Next page | [P] Previous page | [Q] Return to menu
-> Q
 ```
-
-Options 2 and 3 show the same summary values for this seed because the workload has no scheduling contention: 20 processed, 18 allocated, 2 rejected, and the same utilization. The detailed timing metrics (elapsed ticks, average wait, throughput) remain available in the Option 4 comparison report (Demo 2).
 
 ---
 
 ## Demo 2 — Strategy comparison (Option 4)
 
-**Goal:** compare all three strategies on one workload and show the compact outcome summary.
+**Goal:** compare all three strategies on one workload.
 
 **Steps**
 
-1. Choose `5` (Configure workload).
-2. Press Enter to keep 20 jobs.
-3. Press Enter to keep 5 servers.
-4. Enter seed `84`.
-5. Choose `4` (Compare all three strategies).
-6. Choose `6` to exit.
+1. Choose `5`, press Enter twice to keep 20 jobs and 5 servers, then enter seed `84`.
+2. Choose `4` (Compare all three strategies).
 
-**Verified output**
+**What to observe**
 
-The comparison starts with:
-
-```
-  Comparing all three strategies on 20 job(s) / 5 server(s)  [seed=84] ...
-```
-
-Key values condensed from the three full reports:
+- Each strategy starts with fresh state on the same workload.
+- Waiting time and elapsed ticks can differ even when every job completes; the final table summarizes outcomes.
 
 | Metric | FirstFit | BestFit | LoadBalanced |
 |---|---:|---:|---:|
 | Elapsed ticks | 59 | 59 | 62 |
-| Completed | 20 | 20 | 20 |
-| Rejected | 0 | 0 | 0 |
+| Completed / rejected | 20 / 0 | 20 / 0 | 20 / 0 |
 | Avg wait time | 0.500 | 0.250 | 0.650 |
 | Throughput (jobs/tick) | 0.339 | 0.339 | 0.323 |
 | CPU | 10.8% | 10.8% | 10.3% |
@@ -180,141 +125,102 @@ Key values condensed from the three full reports:
 | Storage | 2.6% | 2.6% | 2.5% |
 | GPU | 11.7% | 11.7% | 11.1% |
 
-The report ends with the compact job outcome summary:
-
-```
--------------------------------------------------------
+```text
   Job Outcome Summary (Final Job Counts)
--------------------------------------------------------
   Strategy        Completed  Rejected   Queued  Running
-  -----------------------------------------------------
   FirstFit               20         0        0        0
   BestFit                20         0        0        0
   LoadBalanced           20         0        0        0
--------------------------------------------------------
 ```
+
 ---
 
 ## Demo 3 — Constrained resources and rejection
 
-**Goal:** show permanent rejection and an undefined (`N/A`) resource metric.
+**Goal:** show permanent rejection and `N/A` utilization.
 
 **Steps**
 
-1. Choose `5` (Configure workload).
-2. Enter `50` for job count.
-3. Enter `1` for server count.
-4. Enter seed `42`.
-5. Choose `4` (Compare all three strategies).
-6. Choose `6` to exit.
+1. Choose `5`, then enter `50` jobs, `1` server, and seed `42`.
+2. Choose `4` (Compare all three strategies).
 
-**Verified output**
+**What to observe**
 
-With one server, all three strategies make the same decisions. The key values are:
+- Jobs that can never fit are rejected as they arrive.
+- With one server, all three strategies tie; GPU is `N/A` because the server has no GPU capacity.
 
 | Metric | Value |
 |---|---:|
 | Elapsed ticks | 50 |
-| Submitted | 50 |
 | Completed | 11 (22.0%) |
 | Rejected | 39 (78.0%) |
-| Still active | 0 |
-| Avg wait time | 2.182 ticks (sample n=11) |
+| Avg wait time | 2.182 ticks (n=11) |
 | Throughput | 0.220 jobs/tick |
-| CPU | 49.3% |
-| RAM | 43.5% |
-| Storage | 7.5% |
+| CPU / RAM / Storage | 49.3% / 43.5% / 7.5% |
 | GPU | N/A |
 
-The compact summary table confirms the tie:
+All three rows in the final summary show `11` completed and `39` rejected.
 
-```
--------------------------------------------------------
-  Job Outcome Summary (Final Job Counts)
--------------------------------------------------------
-  Strategy        Completed  Rejected   Queued  Running
-  -----------------------------------------------------
-  FirstFit               11        39        0        0
-  BestFit                11        39        0        0
-  LoadBalanced           11        39        0        0
--------------------------------------------------------
-```
 ---
 
-## Demo 4 — Workload configuration (Option 5)
+## Demo 4 — Workload configuration and reproducibility (Option 5)
 
-**Goal:** change job count, server count, and seed before a run.
+**Goal:** change the workload and show that a seed reproduces a run.
 
 **Steps**
 
-1. Choose `5`.
-2. Enter `12` for job count.
-3. Enter `4` for server count.
-4. Enter seed `123`.
-5. Choose `6` to exit (or continue with another demo).
+1. Choose `5`, then enter `12` jobs, `4` servers, and seed `123`.
+2. Choose `1`, review the results, and press `Q`.
+3. Choose `1` again; the allocation records should match the first run.
+4. Choose `5`, keep 12 jobs and 4 servers with Enter, enter seed `124`, then run `1` again.
 
-**Verified output**
+**What to observe**
 
-```
+- Option 5 shows each current value in its prompt.
+- The same seed produces identical records; changing only the seed can change counts and utilization.
+
+```text
   New job count   [1-1000, Enter to keep 20]: 12
   New server count [1-100, Enter to keep 5]: 4
   New seed        [0-4294967295, Enter to keep 42]: 123
-
-  Updated workload settings:
-    Jobs       : 12
-    Servers    : 4
-    Seed       : 123
-    Max arrival: 50 tick(s)
-    Max dur.   : 10 tick(s)
 ```
+
+| Seed (12 jobs / 4 servers) | Allocated | Rejected | CPU | RAM | Storage | GPU |
+|---:|---:|---:|---:|---:|---:|---:|
+| 123 | 5 | 7 | 3.7% | 7.9% | 1.8% | N/A |
+| 124 | 11 | 1 | 15.5% | 11.7% | 5.2% | 0.0% |
+
 ---
 
 ## Demo 5 — Server status display (Option 7)
 
-**Goal:** show how available resources on each server change during a First Fit run.
-
-Option 7 always runs First Fit. It is best demonstrated with a small workload because it prints a full table after every job start and every resource release.
+**Goal:** show how available resources change during a First Fit run.
 
 **Steps**
 
-1. Choose `5`.
-2. Enter `6` jobs, `3` servers, and seed `7`.
-3. Choose `7` (Server status display).
-4. Choose `6` to exit.
+1. Choose `5`, then enter `6` jobs, `3` servers, and seed `7`.
+2. Choose `7` (Server status display), then `6` to exit.
 
-**Verified output**
+**What to observe**
 
-```
-  Running First Fit for server status display on 6 job(s) / 3 server(s)  [seed=7] ...
+- Tick 0 shows every server at full capacity.
+- A job start reduces available resources; a release restores them, and the final snapshot is fully available again.
 
-=======================================================
-  Server Resource Status
-=======================================================
-  (Avl = available; Cap = total capacity; units: cores / GB / devices)
-
+```text
   [tick 0 — initial state]
   Server  Type          Cap.CPU Avl.CPU Cap.RAM Avl.RAM Cap.Stor  Avl.Stor  Cap.GPU Avl.GPU
-  ------------------------------------------------------------------------------------------
   srv-0   GPUServer     10.0    10.0    33.0    33.0    166.0     166.0     2.0     2.0
   srv-1   ComputeServer 13.0    13.0    103.0   103.0   324.0     324.0     0.0     0.0
   srv-2   StorageServer 4.0     4.0     13.0    13.0    2077.0    2077.0    0.0     0.0
 
   [tick 3 — job job-4 started on srv-2]
-  Server  Type          Cap.CPU Avl.CPU Cap.RAM Avl.RAM Cap.Stor  Avl.Stor  Cap.GPU Avl.GPU
-  ------------------------------------------------------------------------------------------
-  srv-0   GPUServer     10.0    10.0    33.0    33.0    166.0     166.0     2.0     2.0
-  srv-1   ComputeServer 13.0    13.0    103.0   103.0   324.0     324.0     0.0     0.0
   srv-2   StorageServer 4.0     2.0     13.0    11.0    2077.0    1650.0    0.0     0.0
 
   [tick 10 — job job-4 released resources from srv-2]
-  Server  Type          Cap.CPU Avl.CPU Cap.RAM Avl.RAM Cap.Stor  Avl.Stor  Cap.GPU Avl.GPU
-  ------------------------------------------------------------------------------------------
-  srv-0   GPUServer     10.0    10.0    33.0    33.0    166.0     166.0     2.0     2.0
-  srv-1   ComputeServer 13.0    13.0    103.0   103.0   324.0     324.0     0.0     0.0
   srv-2   StorageServer 4.0     4.0     13.0    13.0    2077.0    2077.0    0.0     0.0
 ```
 
-This is an excerpt. The full report prints one snapshot after each `JOB_STARTED` and `RESOURCE_RELEASED` event. For this run the remaining snapshots occur at ticks 4, 11, 13, 18, 35, 42, 44, 45, 51, and 53, ending with every server fully available again.
+The full timeline also includes snapshots at ticks 4, 11, 13, 18, 35, 42, 44, 45, 51, and 53.
 
 ---
 
@@ -324,30 +230,15 @@ This is an excerpt. The full report prints one snapshot after each `JOB_STARTED`
 
 **Steps**
 
-1. Start from the defaults (20 jobs, 5 servers, seed 42). If you changed them, restore them with Option 5 or restart the program.
-2. Choose `8` (Filter simulation event log by type).
-3. Choose `4` (Job Rejections).
-4. Choose `6` to exit.
+1. Restore the defaults with Option 5: 20 jobs, 5 servers, seed 42.
+2. Choose `8`, then `4` (Job Rejections), or type `rejection`.
+3. Choose `6` to exit.
 
-**Verified output**
+**What to observe**
 
-The filter menu offers four choices:
+- Only matching events are listed with tick, job ID, server ID, and detail; the total count confirms the matches.
 
-```
-------------------------------------------------------------
-  FILTER EVENT LOG BY TYPE
-------------------------------------------------------------
-  1. Job Arrivals    (JOB_ARRIVED)
-  2. Job Starts      (JOB_STARTED)
-  3. Job Completions (JOB_COMPLETED)
-  4. Job Rejections  (JOB_REJECTED)
-------------------------------------------------------------
-  Choice (1-4): 4
-```
-
-Choosing `4` prints:
-
-```
+```text
 ------------------------------------------------------------
   Simulation Events: JOB_REJECTED
 ------------------------------------------------------------
@@ -359,18 +250,18 @@ Choosing `4` prints:
   Total matching events: 2
 ------------------------------------------------------------
 ```
+
 ---
 
 ## Suggested live demo order
 
-| Step | Feature | Inputs | What to emphasize |
+| Step | Feature | Inputs | Emphasize |
 |---:|---|---|---|
-| 1 | Individual run | `1`, `Q`, `6` | Paginated results screen, navigation, and summary fields |
-| 2 | Strategy comparison | `5`, Enter, Enter, `84`, `4` | Fresh state per strategy and the summary table |
-| 3 | Constrained resources | `5`, `50`, `1`, `42`, `4` | Rejection at arrival and `GPU : N/A` |
-| 4 | Server status | `5`, `6`, `3`, `7`, `7` | Resource reservation and release over time |
-| 5 | Event filtering | `8`, `4` | Event log as the source of report data |
+| 1 | Individual run | `1`, `Q` | Paginated screen and rejected rows |
+| 2 | Strategy comparison | `5`, Enter, Enter, `84`, `4` | Fresh state and the summary table |
+| 3 | Constrained resources | `5`, `50`, `1`, `42`, `4` | Rejection and `GPU : N/A` |
+| 4 | Reproducibility | `5`, `12`, `4`, `123`, `1`, `Q`, `1`, `Q`; then `5`, Enter, Enter, `124`, `1`, `Q` | Identical rerun, then a changed workload |
+| 5 | Server status | `5`, `6`, `3`, `7`, `7` | Reservation and release over time |
+| 6 | Event filtering | `5`, `20`, `5`, `42`, `8`, `4` | Event log as the source of report data |
 
-Workload settings persist between menu choices, so set them explicitly at each step or restart between demos.
-
----
+Workload settings persist between menu choices, so each step sets them explicitly. Use `6` whenever you want to leave the program.
