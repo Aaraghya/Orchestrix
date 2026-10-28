@@ -171,11 +171,9 @@ Start the interactive simulator:
 ## 10. Contributing
 
 1. Fork the repository and create a focused branch, for example `feature/my-change`.
-2. Read the existing headers and [docs/architecture.md](docs/architecture.md) before changing behavior.
-3. Keep the architecture modular and the code readable for a second-year CSE student.
-4. Add or update tests for meaningful behavior and edge cases.
-5. Build and run the full test suite locally.
-6. Open a pull request describing the change, the motivation, and the tests run.
+2. Add or update tests for meaningful behavior and edge cases.
+3. Build and run the full test suite locally.
+4. Open a pull request describing the change, the motivation, and the tests run.
 
 Please do not silently change agreed interfaces or simulation rules, and do not mix unrelated refactors into a single change. Keep changes focused and reviewable.
 
@@ -183,4 +181,4 @@ Acknowledgements:
 
 - Developed as part of the Semester 3 **Object-Oriented Programming with C++** course.
 - Built with the C++ standard library, CMake, CTest and Ninja.
-- Component design and reproducible demonstrations are documented in [docs/architecture.md](docs/architecture.md) and [docs/demo-scenarios.md](docs/demo-scenarios.md).
+- Reproducible demonstrations are documented in [docs/demo-scenarios.md](docs/demo-scenarios.md).
