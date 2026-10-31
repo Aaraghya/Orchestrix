@@ -62,12 +62,12 @@ static void printMenu() {
     std::cout << "     Compare performance using the same generated workload.\n\n";
     std::cout << "  5. Configure workload (Job count / seed)\n";
     std::cout << "     Adjust workload generation settings.\n\n";
-    std::cout << "  6. Exit\n";
-    std::cout << "     Close Orchestrix.\n\n";
-    std::cout << "  7. Server status display (First Fit run)\n";
+    std::cout << "  6. Server status display (First Fit run)\n";
     std::cout << "     View server resource-allocation status.\n\n";
-    std::cout << "  8. Filter simulation event log by type\n";
-    std::cout << "     View events matching a selected event type.\n";
+    std::cout << "  7. Filter simulation event log by type\n";
+    std::cout << "     View events matching a selected event type.\n\n";
+    std::cout << "  8. Exit\n";
+    std::cout << "     Close Orchestrix.\n";
     std::cout << LINE_WIDE << "\n";
     std::cout << "Choice: ";
 }
@@ -418,18 +418,18 @@ int main() {
             configureWorkload(cfg);
 
         } else if (ch == "6") {
-            std::cout << "\n  Goodbye!\n\n";
-            running = false;
-
-        } else if (ch == "7") {
             auto [servers, jobs] = generateWorkload();
             runServerStatus(servers, jobs, cfg, MAX_TICK);
 
-        } else if (ch == "8") {
+        } else if (ch == "7") {
             auto [servers, jobs] = generateWorkload();
             if (!runFilteredEvents(servers, jobs, cfg, MAX_TICK)) {
                 running = false;
             }
+
+        } else if (ch == "8") {
+            std::cout << "\n  Goodbye!\n\n";
+            running = false;
 
         } else {
             std::cout << "\n  Invalid choice '" << ch

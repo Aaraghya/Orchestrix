@@ -115,7 +115,7 @@ void test_PaginationPageSizeAndFirstPage() {
         EXPECT_TRUE(page1.find("ORCHESTRIX SIMULATION") != std::string::npos);
         EXPECT_TRUE(page1.find("Strategy: First Fit") != std::string::npos);
         EXPECT_TRUE(page1.find("ALLOCATION DETAILS") != std::string::npos);
-        EXPECT_TRUE(page1.find("Showing results 1–20 of 50") != std::string::npos);
+        EXPECT_TRUE(page1.find("Showing results 1-20 of 50") != std::string::npos);
 
         // First 20 items must be present.
         EXPECT_TRUE(page1.find("job-0 ") != std::string::npos);
@@ -133,7 +133,7 @@ void test_NextPageNavigation() {
 
         // Directly rendering page 2.
         std::string page2 = ReportGenerator::generateResultsPage(summary, records, 2, 20);
-        EXPECT_TRUE(page2.find("Showing results 21–40 of 50") != std::string::npos);
+        EXPECT_TRUE(page2.find("Showing results 21-40 of 50") != std::string::npos);
         EXPECT_TRUE(page2.find("job-20 ") != std::string::npos);
         EXPECT_TRUE(page2.find("job-39 ") != std::string::npos);
         EXPECT_TRUE(page2.find("job-0 ") == std::string::npos);
@@ -144,7 +144,7 @@ void test_NextPageNavigation() {
         std::ostringstream out;
         bool quitCleanly = ReportGenerator::showPaginatedResults(in, out, summary, records, 20);
         EXPECT_TRUE(quitCleanly);
-        EXPECT_TRUE(out.str().find("Showing results 21–40 of 50") != std::string::npos);
+        EXPECT_TRUE(out.str().find("Showing results 21-40 of 50") != std::string::npos);
     });
 }
 
@@ -159,8 +159,8 @@ void test_PreviousPageNavigation() {
         bool quitCleanly = ReportGenerator::showPaginatedResults(in, out, summary, records, 20);
         EXPECT_TRUE(quitCleanly);
         const std::string s = out.str();
-        EXPECT_TRUE(s.find("Showing results 21–40 of 50") != std::string::npos);
-        EXPECT_TRUE(s.find("Showing results 1–20 of 50") != std::string::npos);
+        EXPECT_TRUE(s.find("Showing results 21-40 of 50") != std::string::npos);
+        EXPECT_TRUE(s.find("Showing results 1-20 of 50") != std::string::npos);
 
         // Pressing P on page 1 should not go below page 1.
         std::istringstream in2("P\nQ\n");
@@ -175,9 +175,9 @@ void test_FinalPageRemainingRecords() {
         auto summary = makeSampleSummary("First Fit", 50, 40, 10);
         auto records = makeSampleRecords(50);
 
-        // Page 3 has records 41–50 (10 items).
+        // Page 3 has records 41-50 (10 items).
         std::string page3 = ReportGenerator::generateResultsPage(summary, records, 3, 20);
-        EXPECT_TRUE(page3.find("Showing results 41–50 of 50") != std::string::npos);
+        EXPECT_TRUE(page3.find("Showing results 41-50 of 50") != std::string::npos);
         EXPECT_TRUE(page3.find("job-40 ") != std::string::npos);
         EXPECT_TRUE(page3.find("job-49 ") != std::string::npos);
         EXPECT_TRUE(page3.find("job-50 ") == std::string::npos);
@@ -196,7 +196,7 @@ void test_FewerThanTwentyJobs() {
         auto records = makeSampleRecords(7);
 
         std::string page = ReportGenerator::generateResultsPage(summary, records, 1, 20);
-        EXPECT_TRUE(page.find("Showing results 1–7 of 7") != std::string::npos);
+        EXPECT_TRUE(page.find("Showing results 1-7 of 7") != std::string::npos);
         EXPECT_TRUE(page.find("job-0 ") != std::string::npos);
         EXPECT_TRUE(page.find("job-6 ") != std::string::npos);
         EXPECT_TRUE(page.find("job-7 ") == std::string::npos);
@@ -216,7 +216,7 @@ void test_EmptyResultSet() {
 
         std::string page = ReportGenerator::generateResultsPage(summary, records, 1, 20);
         EXPECT_TRUE(page.find("(No jobs to display)") != std::string::npos);
-        EXPECT_TRUE(page.find("Showing results 0–0 of 0") != std::string::npos);
+        EXPECT_TRUE(page.find("Showing results 0-0 of 0") != std::string::npos);
 
         std::istringstream in("n\np\nq\n");
         std::ostringstream out;
@@ -249,7 +249,7 @@ void test_CaseInsensitivityAndTrimming() {
         std::ostringstream out;
         bool clean = ReportGenerator::showPaginatedResults(in, out, summary, records, 20);
         EXPECT_TRUE(clean);
-        EXPECT_TRUE(out.str().find("Showing results 21–30 of 30") != std::string::npos);
+        EXPECT_TRUE(out.str().find("Showing results 21-30 of 30") != std::string::npos);
     });
 }
 
@@ -364,16 +364,16 @@ void test_NonPositivePageSizeGuard() {
         auto records = makeSampleRecords(3);
 
         std::string pageZero = ReportGenerator::generateResultsPage(summary, records, 1, 0);
-        EXPECT_TRUE(pageZero.find("Showing results 1–1 of 3") != std::string::npos);
+        EXPECT_TRUE(pageZero.find("Showing results 1-1 of 3") != std::string::npos);
 
         std::string pageNegative = ReportGenerator::generateResultsPage(summary, records, 1, -5);
-        EXPECT_TRUE(pageNegative.find("Showing results 1–1 of 3") != std::string::npos);
+        EXPECT_TRUE(pageNegative.find("Showing results 1-1 of 3") != std::string::npos);
 
         std::istringstream in("q\n");
         std::ostringstream out;
         bool clean = ReportGenerator::showPaginatedResults(in, out, summary, records, 0);
         EXPECT_TRUE(clean);
-        EXPECT_TRUE(out.str().find("Showing results 1–1 of 3") != std::string::npos);
+        EXPECT_TRUE(out.str().find("Showing results 1-1 of 3") != std::string::npos);
     });
 }
 

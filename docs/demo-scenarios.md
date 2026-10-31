@@ -29,9 +29,9 @@ The program prints the current workload settings and these options:
      Compare performance using the same generated workload.
   5. Configure workload (Job count / seed)
      Adjust workload generation settings.
-  6. Exit
-  7. Server status display (First Fit run)
-  8. Filter simulation event log by type
+  6. Server status display (First Fit run)
+  7. Filter simulation event log by type
+  8. Exit
 Choice:
 ```
 
@@ -39,9 +39,9 @@ Choice:
 
 - Type an option number and press Enter.
 - Option 5 keeps the current value when you enter a blank or invalid value.
-- Options 1–4 and 7–8 generate a fresh workload from the current settings.
+- Options 1–4, 6 and 7 generate a fresh workload from the current settings.
 - Options 1–3 use a paginated screen: `N` next, `P` previous, `Q` back to the menu, 20 records per page.
-- Option 8 accepts `1`–`4` or `arrival`, `start`, `completion`, and `rejection`.
+- Option 7 accepts `1`–`4` or `arrival`, `start`, `completion`, and `rejection`.
 - The same settings and seed reproduce the same workload and results. Settings persist until changed or the program exits.
 
 **Default workload**
@@ -192,14 +192,14 @@ All three rows in the final summary show `11` completed and `39` rejected.
 
 ---
 
-## Demo 5 — Server status display (Option 7)
+## Demo 5 — Server status display (Option 6)
 
 **Goal:** show how available resources change during a First Fit run.
 
 **Steps**
 
 1. Choose `5`, then enter `6` jobs, `3` servers, and seed `7`.
-2. Choose `7` (Server status display), then `6` to exit.
+2. Choose `6` (Server status display), then `8` to exit.
 
 **What to observe**
 
@@ -207,16 +207,16 @@ All three rows in the final summary show `11` completed and `39` rejected.
 - A job start reduces available resources; a release restores them, and the final snapshot is fully available again.
 
 ```text
-  [tick 0 — initial state]
+  [tick 0 - initial state]
   Server  Type          Cap.CPU Avl.CPU Cap.RAM Avl.RAM Cap.Stor  Avl.Stor  Cap.GPU Avl.GPU
   srv-0   GPUServer     10.0    10.0    33.0    33.0    166.0     166.0     2.0     2.0
   srv-1   ComputeServer 13.0    13.0    103.0   103.0   324.0     324.0     0.0     0.0
   srv-2   StorageServer 4.0     4.0     13.0    13.0    2077.0    2077.0    0.0     0.0
 
-  [tick 3 — job job-4 started on srv-2]
+  [tick 3 - job job-4 started on srv-2]
   srv-2   StorageServer 4.0     2.0     13.0    11.0    2077.0    1650.0    0.0     0.0
 
-  [tick 10 — job job-4 released resources from srv-2]
+  [tick 10 - job job-4 released resources from srv-2]
   srv-2   StorageServer 4.0     4.0     13.0    13.0    2077.0    2077.0    0.0     0.0
 ```
 
@@ -224,15 +224,15 @@ The full timeline also includes snapshots at ticks 4, 11, 13, 18, 35, 42, 44, 45
 
 ---
 
-## Demo 6 — Filter the event log (Option 8)
+## Demo 6 — Filter the event log (Option 7)
 
 **Goal:** inspect one event type from a completed First Fit run.
 
 **Steps**
 
 1. Restore the defaults with Option 5: 20 jobs, 5 servers, seed 42.
-2. Choose `8`, then `4` (Job Rejections), or type `rejection`.
-3. Choose `6` to exit.
+2. Choose `7`, then `4` (Job Rejections), or type `rejection`.
+3. Choose `8` to exit.
 
 **What to observe**
 
@@ -261,7 +261,7 @@ The full timeline also includes snapshots at ticks 4, 11, 13, 18, 35, 42, 44, 45
 | 2 | Strategy comparison | `5`, Enter, Enter, `84`, `4` | Fresh state and the summary table |
 | 3 | Constrained resources | `5`, `50`, `1`, `42`, `4` | Rejection and `GPU : N/A` |
 | 4 | Reproducibility | `5`, `12`, `4`, `123`, `1`, `Q`, `1`, `Q`; then `5`, Enter, Enter, `124`, `1`, `Q` | Identical rerun, then a changed workload |
-| 5 | Server status | `5`, `6`, `3`, `7`, `7` | Reservation and release over time |
-| 6 | Event filtering | `5`, `20`, `5`, `42`, `8`, `4` | Event log as the source of report data |
+| 5 | Server status | `5`, `6`, `3`, `6`, `8` | Reservation and release over time |
+| 6 | Event filtering | `5`, `20`, `5`, `42`, `7`, `4` | Event log as the source of report data |
 
-Workload settings persist between menu choices, so each step sets them explicitly. Use `6` whenever you want to leave the program.
+Workload settings persist between menu choices, so each step sets them explicitly. Use `8` whenever you want to leave the program.

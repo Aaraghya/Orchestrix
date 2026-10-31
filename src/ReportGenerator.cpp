@@ -248,7 +248,7 @@ std::string ReportGenerator::generateServerStatus(
     out << "  (Avl = available; Cap = total capacity; units: cores / GB / devices)\n\n";
 
     // Snapshot 0: initial state (nothing allocated).
-    out << "  [tick 0 — initial state]\n";
+    out << "  [tick 0 - initial state]\n";
     printTable(out);
 
     // Replay JOB_STARTED and RESOURCE_RELEASED events in log order.
@@ -264,7 +264,7 @@ std::string ReportGenerator::generateServerStatus(
                 sit->second.ram     -= req.ram;
                 sit->second.storage -= req.storage;
                 sit->second.gpu     -= req.gpu;
-                out << "\n  [tick " << ev.tick << " — job " << ev.jobId
+                out << "\n  [tick " << ev.tick << " - job " << ev.jobId
                     << " started on " << ev.serverId << "]\n";
                 printTable(out);
             }
@@ -277,7 +277,7 @@ std::string ReportGenerator::generateServerStatus(
                 sit->second.ram     += req.ram;
                 sit->second.storage += req.storage;
                 sit->second.gpu     += req.gpu;
-                out << "\n  [tick " << ev.tick << " — job " << ev.jobId
+                out << "\n  [tick " << ev.tick << " - job " << ev.jobId
                     << " released resources from " << ev.serverId << "]\n";
                 printTable(out);
             }
@@ -433,9 +433,9 @@ std::string ReportGenerator::generateResultsPage(
 
     out << "\n" << lineThin << "\n";
     if (total == 0) {
-        out << "Showing results 0–0 of 0\n";
+        out << "Showing results 0-0 of 0\n";
     } else {
-        out << "Showing results " << (startIdx + 1) << "–" << endIdx
+        out << "Showing results " << (startIdx + 1) << "-" << endIdx
             << " of " << total << "\n";
     }
     out << "[N] Next page | [P] Previous page | [Q] Return to menu\n";

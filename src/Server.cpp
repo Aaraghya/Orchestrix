@@ -57,7 +57,7 @@ bool Server::canAccommodate(const ResourceRequirements& req) const noexcept {
 void Server::reserveResources(const ResourceRequirements& req) {
     if (!m_available) {
         throw std::runtime_error(
-            "Server '" + m_id + "': cannot reserve resources — server is unavailable.");
+            "Server '" + m_id + "': cannot reserve resources - server is unavailable.");
     }
 
     if (!canRunJob(req)) {
