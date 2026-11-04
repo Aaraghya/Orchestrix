@@ -54,6 +54,7 @@ Filter the simulation event log by event type, here showing only rejected jobs.
 
 ---
 
+
 ## Overview
 
 Orchestrix models a small data center as a set of servers that own finite resources. Jobs arrive at known ticks, declare their resource requirements and duration, wait in a FIFO queue, and are placed on a compatible server by one of three allocation strategies. When a job finishes, its resources are released and become available to waiting jobs.
@@ -95,43 +96,6 @@ A server is compatible only when it is available and its type accepts the job:
 | `StorageServer` | Only jobs with `storage > 0` |
 
 A job that cannot fit on any compatible server at its arrival tick is rejected only if no server could ever hold it, judged by total capacity and type. A temporarily full server does not cause a permanent rejection: the job waits and is retried on later ticks.
-
-### Example comparison
-
-The same workload (20 jobs, 5 servers, seed 84) run through all three strategies:
-
-| Metric | First Fit | Best Fit | Load Balanced |
-|---|---:|---:|---:|
-| Elapsed ticks | 59 | 59 | 62 |
-| Completed / rejected | 20 / 0 | 20 / 0 | 20 / 0 |
-| Average wait time | 0.500 | 0.250 | 0.650 |
-| Throughput (jobs/tick) | 0.339 | 0.339 | 0.323 |
-
-On this workload Best Fit had the shortest average wait and Load Balanced took the most ticks to finish. Other seeds and workloads can give different results, which is why the comparison mode exists.
-
-## How it works
-
-### Components
-
-| Layer | Classes | Responsibility |
-|---|---|---|
-| Model | `ResourceRequirements`, `Job`, `Server`, `DataCenter` | Describe jobs, the four resource dimensions and the pool of servers |
-| Servers | `ComputeServer`, `GPUServer`, `StorageServer` | Share one accounting base class and add their own compatibility rule |
-| Strategies | `AllocationStrategy`, `FirstFit`, `BestFit`, `LoadBalanced` | Choose a server for a job; they never reserve resources themselves |
-| Scheduling | `Scheduler` | Asks the strategy for a server, then reserves resources atomically |
-| Simulation | `SimulationEngine`, `SimulationEvent`, `WorkloadGenerator` | Advance the tick clock, log events, generate reproducible workloads |
-| Analysis | `MetricsCollector`, `SimulationMetrics`, `StrategyComparison` | Derive metrics from a finished run and compare strategies on identical input |
-| Presentation | `ReportGenerator`, `Terminal.h`, `src/main.cpp` | Format every report, add colour, and run the interactive menu |
-
-### Object-oriented design
-
-| Concept | Where | How it is used |
-|---|---|---|
-| Encapsulation | `Server` | Owns its capacity and allocation. "Available" is computed as total minus allocated, and a failed reserve or release throws without changing anything. |
-| Inheritance | `Server` → `ComputeServer`, `GPUServer`, `StorageServer` | Derived servers inherit all accounting and only add which jobs they accept. |
-| Polymorphism | `AllocationStrategy` → `FirstFit`, `BestFit`, `LoadBalanced` | `Scheduler` calls `select()` through the base interface and never knows which strategy it holds. |
-| Abstraction | `AllocationStrategy`, `Server::canRunJob()` | Pure virtual functions hide the selection and compatibility rules behind a small interface. |
-| Separation of concerns | `MetricsCollector`, `ReportGenerator` | Stateless classes that derive or format results without touching simulation state. |
 
 ### Execution flow
 
@@ -273,14 +237,6 @@ C:\msys64\ucrt64\bin\ctest.exe --test-dir build --output-on-failure
 
 </details>
 
-### Run the tests
-
-```bash
-ctest --test-dir build --output-on-failure
-```
-
-All tests should pass.
-
 ### Menu options
 
 | Option | What it does |
@@ -296,33 +252,6 @@ All tests should pass.
 
 On the paginated screen, `N` shows the next page, `P` the previous page and `Q` returns to the menu. The default workload is 20 jobs, 5 servers and seed 42.
 
-### Try it
-
-Settings persist between menu choices, so each demo sets them first. Every demo is reproducible because the seed is fixed.
-
-| Goal | Keys | What to notice |
-|---|---|---|
-| One strategy run | `1`, then `Q` | 18 jobs allocated, 2 rejected |
-| Compare strategies | `5`, Enter, Enter, `84`, `4` | Different waiting times on the same workload |
-| Overloaded data center | `5`, `50`, `1`, `42`, `4` | 11 completed, 39 rejected, GPU shown as `N/A` |
-| Reproducibility | `5`, `12`, `4`, `123`, `1`, `Q` | 5 allocated, 7 rejected; rerun it for identical rows, then try seed `124` for 11 and 1 |
-| Server status | `5`, `6`, `3`, `7`, `6` | Resources taken at each start and restored at each release |
-| Event filtering | `5`, `20`, `5`, `42`, `7`, `4` | Two rejections: `job-15` at tick 12 and `job-4` at tick 13 |
-
-More walkthroughs are in [docs/demo-scenarios.md](docs/demo-scenarios.md).
-
-### Colour output
-
-When Orchestrix runs in a terminal, the output is colour-coded: headings in cyan, `Allocated` / `Completed` in green, `Rejected` in red, `Queued` in yellow, utilization percentages from green to red, and the server types in their own colours. Colour is only added for interactive terminals, so piped output and the automated tests stay plain text.
-
-| Setting | Effect |
-|---|---|
-| `NO_COLOR=1` | Turn colour off |
-| `ORCHESTRIX_COLOR=always` | Force colour on (for example when the terminal is not detected) |
-| `ORCHESTRIX_COLOR=never` | Turn colour off |
-
-The colour logic lives in `include/Terminal.h` and is covered by `tests/test_terminal.cpp`.
-
 ### Troubleshooting
 
 | Problem | Fix |
@@ -331,20 +260,6 @@ The colour logic lives in `include/Terminal.h` and is covered by `tests/test_ter
 | No colour appears | Run `ORCHESTRIX_COLOR=always ./build/orchestrix.exe`. |
 | `cmd` or PowerShell cannot start `orchestrix.exe` because a DLL is missing | Start it from the UCRT64 shell, or add `C:\msys64\ucrt64\bin` to `PATH` in that window. |
 | `pacman` reports download timeouts | Run the command again; it falls back to other mirrors. |
-
-## Limitations
-
-Orchestrix is a local simulation. These things are intentionally not part of the current build:
-
-- A separate `ResourceManager` class (reservation and release live in the server operations)
-- Server failure and recovery simulation, and job migration after failures
-- CSV report export
-- Manual job entry (the CLI uses generated workloads)
-- Energy-aware scheduling
-- Real cloud infrastructure integration or distributed execution
-- A graphical user interface
-
-The single-run results screen shows `Average allocation time` as `N/A`. Waiting time is reported in the strategy comparison instead.
 
 ## Team
 
