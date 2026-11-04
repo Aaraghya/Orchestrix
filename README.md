@@ -6,7 +6,7 @@
 
 `C++17`   `CMake`   `Ninja`   `CTest`   `Standard library only`   `Interactive CLI`
 
-[Screenshots](#screenshots) / [Overview](#overview) / [Features](#features) / [Strategies](#allocation-strategies) / [How it works](#how-it-works) / [Getting started](#prerequisites-and-installation) / [Running](#running-orchestrix)
+[Screenshots](#screenshots) / [Overview](#overview) / [Features](#features) / [Strategies](#allocation-strategies) / [How it works](#how-it-works) / [Getting started](#getting-started) / [Menu options](#menu-options)
 
 </div>
 
@@ -82,17 +82,32 @@ All strategies receive the same `DataCenter` and are asked to place a `Job`. A s
 
 | Strategy | Selection rule | Tie-breaking |
 |---|---|---|
-| **First Fit** | Iterate servers in data-center insertion order and choose the first server that is available, type-compatible and has enough available resources. | Insertion order — the first match wins. |
-| **Best Fit** | For every compatible server, compute a score as the sum of `(available − required) / capacity` over each resource dimension the job requests. Choose the smallest score, i.e. the server that would be left with the least proportional free space. | Lexicographically smaller server ID. |
-| **Load Balanced** | For every compatible server, compute the average projected utilization `(allocated + required) / capacity` over all dimensions with positive capacity. Choose the lowest projected utilization. | Lexicographically smaller server ID. |
+| **First Fit** | Walk the servers in insertion order and take the first one that is available, type-compatible and has enough free resources. | Insertion order: the first match wins. |
+| **Best Fit** | Score each compatible server as the sum of `(available − required) / capacity` over the resources the job requests. The lowest score wins, meaning the server left with the least proportional free space. | Lexicographically smaller server ID. |
+| **Load Balanced** | Compute each compatible server's average projected utilization `(allocated + required) / capacity` over every dimension with positive capacity. The lowest wins. | Lexicographically smaller server ID. |
 
 A server is compatible only when it is available and its type accepts the job:
 
-- `ComputeServer` accepts any workload that fits its capacity.
-- `GPUServer` accepts only jobs with `gpu > 0`.
-- `StorageServer` accepts only jobs with `storage > 0`.
+| Server type | Accepts |
+|---|---|
+| `ComputeServer` | Any workload that fits its capacity |
+| `GPUServer` | Only jobs with `gpu > 0` |
+| `StorageServer` | Only jobs with `storage > 0` |
 
-A job that cannot fit on any compatible server at its arrival tick is rejected only if no server could ever hold it based on total capacity and type. Temporarily full servers do not cause permanent rejection; the job waits and is retried on later ticks.
+A job that cannot fit on any compatible server at its arrival tick is rejected only if no server could ever hold it, judged by total capacity and type. A temporarily full server does not cause a permanent rejection: the job waits and is retried on later ticks.
+
+### Example comparison
+
+The same workload (20 jobs, 5 servers, seed 84) run through all three strategies:
+
+| Metric | First Fit | Best Fit | Load Balanced |
+|---|---:|---:|---:|
+| Elapsed ticks | 59 | 59 | 62 |
+| Completed / rejected | 20 / 0 | 20 / 0 | 20 / 0 |
+| Average wait time | 0.500 | 0.250 | 0.650 |
+| Throughput (jobs/tick) | 0.339 | 0.339 | 0.323 |
+
+On this workload Best Fit had the shortest average wait and Load Balanced took the most ticks to finish. Other seeds and workloads can give different results, which is why the comparison mode exists.
 
 ## How it works
 
@@ -188,54 +203,66 @@ Orchestrix/
 
 ## Technology Stack
 
-- **Language:** C++17 (no compiler-specific extensions)
-- **Build system:** CMake 3.20 or newer
-- **Generator:** Ninja (recommended) or any CMake generator
-- **Testing:** CTest with self-contained C++ test executables
-- **Libraries:** C++ standard library only
-- **Warnings:** `/W4` on MSVC, `-Wall -Wextra -Wpedantic` elsewhere
+| | |
+|---|---|
+| **Language** | C++17, no compiler-specific extensions |
+| **Build system** | CMake 3.20 or newer, with Ninja recommended |
+| **Testing** | CTest with self-contained C++ test executables |
+| **Libraries** | C++ standard library only |
+| **Warnings** | `/W4` on MSVC, `-Wall -Wextra -Wpedantic` elsewhere |
+| **Verified with** | GCC 13.3 on Ubuntu, and GCC 15.2 and 16.1 with CMake 4.x on Windows (MSYS2 UCRT64) |
 
-The verified development toolchain is GCC 16.1.0 (MSYS2 UCRT64), CMake 4.3.3 and Ninja 1.13.2 on Windows.
+## Getting started
 
-## Prerequisites and Installation
+### Prerequisites
 
-You need:
+- A C++17 compiler (GCC, Clang or MSVC)
+- CMake 3.20 or newer
+- Ninja (recommended, optional)
+- Git
 
-- A C++17 compiler (GCC, Clang or MSVC).
-- CMake 3.20 or newer.
-- Ninja is recommended but optional.
-- Git to clone the repository.
+### Install and run
 
-On Windows, the verified setup uses the MSYS2 UCRT64 environment. Install the toolchain from an MSYS2 UCRT64 shell:
+**Windows (MSYS2 UCRT64)**
 
-```bash
-pacman -S --needed mingw-w64-ucrt-x86_64-gcc \
-                   mingw-w64-ucrt-x86_64-cmake \
-                   mingw-w64-ucrt-x86_64-ninja
-```
+1. Install [MSYS2](https://www.msys2.org) and open the **MSYS2 UCRT64** shell from the Start menu.
+2. Install the toolchain:
+   ```bash
+   pacman -S --needed mingw-w64-ucrt-x86_64-gcc \
+                      mingw-w64-ucrt-x86_64-cmake \
+                      mingw-w64-ucrt-x86_64-ninja git
+   ```
+3. Clone the repository:
+   ```bash
+   git clone https://github.com/Aaraghya/Orchestrix.git
+   cd Orchestrix
+   ```
+4. Build:
+   ```bash
+   cmake -S . -B build -G Ninja
+   cmake --build build
+   ```
+5. Run:
+   ```bash
+   ./build/orchestrix.exe
+   ```
 
-Then clone the repository:
+**Linux and macOS**
+
+Install a C++17 compiler, CMake, Ninja and Git with your package manager (for example `sudo apt install g++ cmake ninja-build git`), then:
 
 ```bash
 git clone https://github.com/Aaraghya/Orchestrix.git
 cd Orchestrix
-```
-
-On Linux or macOS, install a C++17 compiler and CMake through your package manager; no project-specific dependencies are required.
-
-## Build Instructions
-
-From the repository root in the MSYS2 UCRT64 shell:
-
-```bash
 cmake -S . -B build -G Ninja
 cmake --build build
-ctest --test-dir build --output-on-failure
+./build/orchestrix
 ```
 
-The executable is produced at `build/orchestrix.exe` on Windows and `build/orchestrix` on POSIX systems. Omit `-G Ninja` to use the platform default generator.
+Omit `-G Ninja` to use your platform's default generator. To rebuild from scratch, delete the `build/` directory and run the configure step again.
 
-From Windows PowerShell with explicit toolchain paths:
+<details>
+<summary>Windows PowerShell with explicit toolchain paths</summary>
 
 ```powershell
 C:\msys64\ucrt64\bin\cmake.exe -S . -B build -G Ninja
@@ -244,16 +271,45 @@ C:\msys64\ucrt64\bin\ctest.exe --test-dir build --output-on-failure
 .\build\orchestrix.exe
 ```
 
-To rebuild from scratch, remove the `build/` directory and run the configure step again.
+</details>
 
-## Running Orchestrix
-
-Start the interactive simulator:
+### Run the tests
 
 ```bash
-./build/orchestrix.exe      # Windows
-./build/orchestrix          # Linux / macOS
+ctest --test-dir build --output-on-failure
 ```
+
+All tests should pass.
+
+### Menu options
+
+| Option | What it does |
+|---|---|
+| `1` | Run the simulation with **First Fit** and show paginated results |
+| `2` | Run the simulation with **Best Fit** |
+| `3` | Run the simulation with **Load Balanced** |
+| `4` | Compare all three strategies on the same generated workload |
+| `5` | Configure the workload: job count (1 to 1000), server count (1 to 100) and seed |
+| `6` | Show the server status timeline for a First Fit run |
+| `7` | Filter the event log by arrivals, starts, completions or rejections |
+| `8` | Exit |
+
+On the paginated screen, `N` shows the next page, `P` the previous page and `Q` returns to the menu. The default workload is 20 jobs, 5 servers and seed 42.
+
+### Try it
+
+Settings persist between menu choices, so each demo sets them first. Every demo is reproducible because the seed is fixed.
+
+| Goal | Keys | What to notice |
+|---|---|---|
+| One strategy run | `1`, then `Q` | 18 jobs allocated, 2 rejected |
+| Compare strategies | `5`, Enter, Enter, `84`, `4` | Different waiting times on the same workload |
+| Overloaded data center | `5`, `50`, `1`, `42`, `4` | 11 completed, 39 rejected, GPU shown as `N/A` |
+| Reproducibility | `5`, `12`, `4`, `123`, `1`, `Q` | 5 allocated, 7 rejected; rerun it for identical rows, then try seed `124` for 11 and 1 |
+| Server status | `5`, `6`, `3`, `7`, `6` | Resources taken at each start and restored at each release |
+| Event filtering | `5`, `20`, `5`, `42`, `7`, `4` | Two rejections: `job-15` at tick 12 and `job-4` at tick 13 |
+
+More walkthroughs are in [docs/demo-scenarios.md](docs/demo-scenarios.md).
 
 ### Colour output
 
@@ -266,6 +322,15 @@ When Orchestrix runs in a terminal, the output is colour-coded: headings in cyan
 | `ORCHESTRIX_COLOR=never` | Turn colour off |
 
 The colour logic lives in `include/Terminal.h` and is covered by `tests/test_terminal.cpp`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| On Windows, `ctest` reports `Process not started` | The new test programs were probably blocked while being scanned. Run `ctest --test-dir build --rerun-failed --output-on-failure`. |
+| No colour appears | Run `ORCHESTRIX_COLOR=always ./build/orchestrix.exe`. |
+| `cmd` or PowerShell cannot start `orchestrix.exe` because a DLL is missing | Start it from the UCRT64 shell, or add `C:\msys64\ucrt64\bin` to `PATH` in that window. |
+| `pacman` reports download timeouts | Run the command again; it falls back to other mirrors. |
 
 ## Contributing
 
