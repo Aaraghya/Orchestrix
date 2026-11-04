@@ -6,7 +6,7 @@
 
 `C++17`   `CMake`   `Ninja`   `CTest`   `Standard library only`   `Interactive CLI`
 
-[Screenshots](#screenshots) / [Overview](#1-project-overview) / [Features](#2-features) / [Strategies](#3-allocation-strategies) / [Architecture](#4-architecture) / [Getting started](#6-prerequisites-and-installation) / [Running](#9-running-orchestrix)
+[Screenshots](#screenshots) / [Overview](#overview) / [Features](#features) / [Strategies](#allocation-strategies) / [How it works](#how-it-works) / [Getting started](#prerequisites-and-installation) / [Running](#running-orchestrix)
 
 </div>
 
@@ -54,7 +54,7 @@ Filter the simulation event log by event type, here showing only rejected jobs.
 
 ---
 
-## 1. Project Overview
+## Overview
 
 Orchestrix models a small data center as a set of servers that own finite resources. Jobs arrive at known ticks, declare their resource requirements and duration, wait in a FIFO queue, and are placed on a compatible server by one of three allocation strategies. When a job finishes, its resources are released and become available to waiting jobs.
 
@@ -62,21 +62,21 @@ The simulator is deterministic for a given workload configuration and seed. The 
 
 The project is intentionally a single-threaded, standard-library-only C++ application. It has no GUI, database, network layer or external runtime dependencies.
 
-## 2. Features
+## Features
 
-- Domain model for jobs, resource requirements, and Compute, GPU and Storage servers.
-- Atomic resource reservation and release with over-allocation and over-release protection.
-- First Fit, Best Fit and Load Balanced allocation with deterministic tie-breaking.
-- Integer-tick simulation with FIFO queueing, permanent rejection of impossible jobs and a tick-limit safeguard.
-- Reproducible synthetic workload generation from `std::mt19937` using separate RNG streams for servers and jobs.
-- Paginated results screen for single-strategy runs: 20 allocation records per page with `N` / `P` / `Q` navigation.
-- Strategy comparison on an identical workload with fresh state for every run, plus a compact job-outcome summary table.
-- Metrics for job outcomes, completion and rejection rates, average waiting time, throughput and resource-time utilization.
-- Reconstructed server resource status display showing how available CPU, RAM, storage and GPU change during a run.
-- Event-log filtering for job arrivals, starts, completions and rejections.
-- Interactive ASCII command-line interface with 8 menu options and input validation.
+- **Domain model:** jobs, resource requirements, and Compute, GPU and Storage servers.
+- **Safe resource accounting:** atomic reservation and release, with over-allocation and over-release protection.
+- **Three allocation strategies:** First Fit, Best Fit and Load Balanced, with deterministic tie-breaking.
+- **Discrete-event engine:** integer ticks, FIFO queueing, permanent rejection of impossible jobs and a tick-limit safeguard.
+- **Reproducible workloads:** generated from `std::mt19937`, with separate RNG streams for servers and jobs.
+- **Paginated results:** 20 allocation records per page, with `N` / `P` / `Q` navigation.
+- **Fair strategy comparison:** the same workload and fresh state for every run, plus a compact job-outcome summary table.
+- **Metrics:** job outcomes, completion and rejection rates, average waiting time, throughput and resource-time utilization.
+- **Server status timeline:** reconstructs how available CPU, RAM, storage and GPU change during a run.
+- **Event-log filtering:** job arrivals, starts, completions and rejections.
+- **Colour-coded interactive CLI:** 8 menu options, input validation, and colour that switches off for piped output.
 
-## 3. Allocation Strategies
+## Allocation Strategies
 
 All strategies receive the same `DataCenter` and are asked to place a `Job`. A strategy only selects a server; the `Scheduler` performs the atomic resource reservation after selection.
 
@@ -94,7 +94,31 @@ A server is compatible only when it is available and its type accepts the job:
 
 A job that cannot fit on any compatible server at its arrival tick is rejected only if no server could ever hold it based on total capacity and type. Temporarily full servers do not cause permanent rejection; the job waits and is retried on later ticks.
 
-## 4. Architecture
+## How it works
+
+### Components
+
+| Layer | Classes | Responsibility |
+|---|---|---|
+| Model | `ResourceRequirements`, `Job`, `Server`, `DataCenter` | Describe jobs, the four resource dimensions and the pool of servers |
+| Servers | `ComputeServer`, `GPUServer`, `StorageServer` | Share one accounting base class and add their own compatibility rule |
+| Strategies | `AllocationStrategy`, `FirstFit`, `BestFit`, `LoadBalanced` | Choose a server for a job; they never reserve resources themselves |
+| Scheduling | `Scheduler` | Asks the strategy for a server, then reserves resources atomically |
+| Simulation | `SimulationEngine`, `SimulationEvent`, `WorkloadGenerator` | Advance the tick clock, log events, generate reproducible workloads |
+| Analysis | `MetricsCollector`, `SimulationMetrics`, `StrategyComparison` | Derive metrics from a finished run and compare strategies on identical input |
+| Presentation | `ReportGenerator`, `Terminal.h`, `src/main.cpp` | Format every report, add colour, and run the interactive menu |
+
+### Object-oriented design
+
+| Concept | Where | How it is used |
+|---|---|---|
+| Encapsulation | `Server` | Owns its capacity and allocation. "Available" is computed as total minus allocated, and a failed reserve or release throws without changing anything. |
+| Inheritance | `Server` → `ComputeServer`, `GPUServer`, `StorageServer` | Derived servers inherit all accounting and only add which jobs they accept. |
+| Polymorphism | `AllocationStrategy` → `FirstFit`, `BestFit`, `LoadBalanced` | `Scheduler` calls `select()` through the base interface and never knows which strategy it holds. |
+| Abstraction | `AllocationStrategy`, `Server::canRunJob()` | Pure virtual functions hide the selection and compatibility rules behind a small interface. |
+| Separation of concerns | `MetricsCollector`, `ReportGenerator` | Stateless classes that derive or format results without touching simulation state. |
+
+### Execution flow
 
 ```mermaid
 flowchart TD
@@ -147,7 +171,22 @@ The engine advances one tick at a time and performs a fixed sequence:
 
 `MetricsCollector` is stateless and reads the finished engine plus the data center. It reconstructs allocation intervals from `JOB_STARTED` and `RESOURCE_RELEASED` events. `ReportGenerator` is also stateless and formats all console output: paginated results, comparison reports, filtered event logs and server-status timelines.
 
-## 5. Technology Stack
+### Project structure
+
+```
+Orchestrix/
+├── CMakeLists.txt          # build and test configuration
+├── README.md
+├── screenshots/            # images used in this README
+├── docs/
+│   ├── architecture.md     # components and execution flow
+│   └── demo-scenarios.md   # reproducible demo walkthroughs
+├── include/                # headers: model, strategies, engine, reports, Terminal.h
+├── src/                    # implementations and main.cpp (the CLI)
+└── tests/                  # milestone tests, pagination, terminal and CLI smoke tests
+```
+
+## Technology Stack
 
 - **Language:** C++17 (no compiler-specific extensions)
 - **Build system:** CMake 3.20 or newer
@@ -158,7 +197,7 @@ The engine advances one tick at a time and performs a fixed sequence:
 
 The verified development toolchain is GCC 16.1.0 (MSYS2 UCRT64), CMake 4.3.3 and Ninja 1.13.2 on Windows.
 
-## 6. Prerequisites and Installation
+## Prerequisites and Installation
 
 You need:
 
@@ -184,7 +223,7 @@ cd Orchestrix
 
 On Linux or macOS, install a C++17 compiler and CMake through your package manager; no project-specific dependencies are required.
 
-## 7. Build Instructions
+## Build Instructions
 
 From the repository root in the MSYS2 UCRT64 shell:
 
@@ -207,7 +246,7 @@ C:\msys64\ucrt64\bin\ctest.exe --test-dir build --output-on-failure
 
 To rebuild from scratch, remove the `build/` directory and run the configure step again.
 
-## 9. Running Orchestrix
+## Running Orchestrix
 
 Start the interactive simulator:
 
@@ -228,7 +267,7 @@ When Orchestrix runs in a terminal, the output is colour-coded: headings in cyan
 
 The colour logic lives in `include/Terminal.h` and is covered by `tests/test_terminal.cpp`.
 
-## 10. Contributing
+## Contributing
 
 1. Fork the repository and create a focused branch, for example `feature/my-change`.
 2. Add or update tests for meaningful behavior and edge cases.
