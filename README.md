@@ -6,7 +6,7 @@
 
 `C++17`   `CMake`   `Ninja`   `CTest`   `Standard library only`   `Interactive CLI`
 
-[Screenshots](#screenshots) / [Overview](#overview) / [Features](#features) / [Strategies](#allocation-strategies) / [How it works](#how-it-works) / [Getting started](#getting-started) / [Menu options](#menu-options)
+[Screenshots](#screenshots) / [Overview](#overview) / [Features](#features) / [Strategies](#allocation-strategies) / [How it works](#how-it-works) / [Getting started](#getting-started) / [Menu options](#menu-options) / [Team](#team)
 
 </div>
 
@@ -332,9 +332,33 @@ The colour logic lives in `include/Terminal.h` and is covered by `tests/test_ter
 | `cmd` or PowerShell cannot start `orchestrix.exe` because a DLL is missing | Start it from the UCRT64 shell, or add `C:\msys64\ucrt64\bin` to `PATH` in that window. |
 | `pacman` reports download timeouts | Run the command again; it falls back to other mirrors. |
 
+## Limitations
+
+Orchestrix is a local simulation. These things are intentionally not part of the current build:
+
+- A separate `ResourceManager` class (reservation and release live in the server operations)
+- Server failure and recovery simulation, and job migration after failures
+- CSV report export
+- Manual job entry (the CLI uses generated workloads)
+- Energy-aware scheduling
+- Real cloud infrastructure integration or distributed execution
+- A graphical user interface
+
+The single-run results screen shows `Average allocation time` as `N/A`. Waiting time is reported in the strategy comparison instead.
+
+## Team
+
+Built for CSE 202 (Object-Oriented Programming with C++), Semester 3 end-semester project.
+
+| Contributor | GitHub | Contributions |
+|---|---|---|
+| Aaraghya | [@Aaraghya](https://github.com/Aaraghya) | Project foundation and the core simulator: domain model, allocation strategies and scheduler, simulation engine, metrics collection, the CLI, and the architecture and demo documentation |
+| gay3-dumb | [@gay3-dumb](https://github.com/gay3-dumb) | Event-log filtering, the job outcome summary table, the server status display, README updates for those menu options, and the colour-coded terminal output with its tests |
+| ridhimaprasad5-gif | [@ridhimaprasad5-gif](https://github.com/ridhimaprasad5-gif) | Contextual explanations in the main menu and the paginated results display |
+
 ## Contributing
 
-1. Fork the repository and create a focused branch, for example `feature/my-change`.
+1. Create a focused branch, for example `feature/my-change`. Collaborators can push it directly; everyone else can fork the repository first.
 2. Add or update tests for meaningful behavior and edge cases.
 3. Build and run the full test suite locally.
 4. Open a pull request describing the change, the motivation, and the tests run.
