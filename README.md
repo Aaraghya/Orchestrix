@@ -252,15 +252,6 @@ C:\msys64\ucrt64\bin\ctest.exe --test-dir build --output-on-failure
 
 On the paginated screen, `N` shows the next page, `P` the previous page and `Q` returns to the menu. The default workload is 20 jobs, 5 servers and seed 42.
 
-### Troubleshooting
-
-| Problem | Fix |
-|---|---|
-| On Windows, `ctest` reports `Process not started` | The new test programs were probably blocked while being scanned. Run `ctest --test-dir build --rerun-failed --output-on-failure`. |
-| No colour appears | Run `ORCHESTRIX_COLOR=always ./build/orchestrix.exe`. |
-| `cmd` or PowerShell cannot start `orchestrix.exe` because a DLL is missing | Start it from the UCRT64 shell, or add `C:\msys64\ucrt64\bin` to `PATH` in that window. |
-| `pacman` reports download timeouts | Run the command again; it falls back to other mirrors. |
-
 ## Team
 
 Built for CSE 202 (Object-Oriented Programming with C++), Semester 3 end-semester project.
