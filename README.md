@@ -168,6 +168,18 @@ Start the interactive simulator:
 ./build/orchestrix          # Linux / macOS
 ```
 
+### Colour output
+
+When Orchestrix runs in a terminal, the output is colour-coded: headings in cyan, `Allocated` / `Completed` in green, `Rejected` in red, `Queued` in yellow, utilization percentages from green to red, and the server types in their own colours. Colour is only added for interactive terminals, so piped output and the automated tests stay plain text.
+
+| Setting | Effect |
+|---|---|
+| `NO_COLOR=1` | Turn colour off |
+| `ORCHESTRIX_COLOR=always` | Force colour on (for example when the terminal is not detected) |
+| `ORCHESTRIX_COLOR=never` | Turn colour off |
+
+The colour logic lives in `include/Terminal.h` and is covered by `tests/test_terminal.cpp`.
+
 ## 10. Contributing
 
 1. Fork the repository and create a focused branch, for example `feature/my-change`.
