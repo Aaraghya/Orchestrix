@@ -19,6 +19,7 @@
 #include "SimulationEngine.h"
 #include "SimulationMetrics.h"
 #include "StrategyComparison.h"
+#include "Terminal.h"
 #include "WorkloadGenerator.h"
 
 #include <cstdint>
@@ -363,6 +364,10 @@ static void configureWorkload(WorkloadConfig& cfg) {
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 int main() {
+    // Colour the console output when stdout is a terminal (see Terminal.h).
+    term::init();
+    term::ColorScope colorScope;
+
     printBanner();
 
     // Default workload configuration.
