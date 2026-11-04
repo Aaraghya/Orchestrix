@@ -113,9 +113,19 @@ if(BUILD_TESTING)
     )
     add_test(NAME ResultsPaginationTests COMMAND test_results_pagination)
 
+    # ── Terminal colour layer tests ──────────────────────────────────────────
+    add_executable(test_terminal
+        tests/test_terminal.cpp
+    )
+    target_link_libraries(test_terminal
+        PRIVATE orchestrix_core
+    )
+    add_test(NAME TerminalTests COMMAND test_terminal)
+
     # ── Milestone 6: CLI smoke tests ─────────────────────────────────────────
     # Drive the real executable with scripted stdin.  Each scenario checks exit
     # status and one output marker through tests/cli_smoke_test.cmake.
+    # NO_COLOR keeps the captured output free of ANSI colour codes.
     foreach(scenario exit eof single compare)
         add_test(NAME Cli_${scenario}
             COMMAND ${CMAKE_COMMAND}
@@ -124,5 +134,6 @@ if(BUILD_TESTING)
                 -DINPUT=${CMAKE_CURRENT_BINARY_DIR}/cli_input_${scenario}.txt
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli_smoke_test.cmake
         )
+        set_tests_properties(Cli_${scenario} PROPERTIES ENVIRONMENT "NO_COLOR=1")
     endforeach()
 endif()
