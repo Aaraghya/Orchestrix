@@ -353,8 +353,8 @@ Built for CSE 202 (Object-Oriented Programming with C++), Semester 3 end-semeste
 | Contributor | GitHub | Contributions |
 |---|---|---|
 | Aaraghya | [@Aaraghya](https://github.com/Aaraghya) | Project foundation and the core simulator: domain model, allocation strategies and scheduler, simulation engine, metrics collection, the CLI, and the architecture and demo documentation |
-| gay3-dumb | [@gay3-dumb](https://github.com/gay3-dumb) | Event-log filtering, the job outcome summary table, the server status display, README updates for those menu options, and the colour-coded terminal output with its tests |
-| ridhimaprasad5-gif | [@ridhimaprasad5-gif](https://github.com/ridhimaprasad5-gif) | Contextual explanations in the main menu and the paginated results display |
+| Gayatri | [@gay3-dumb](https://github.com/gay3-dumb) | Event-log filtering, the job outcome summary table, the server status display, README updates for those menu options, and the colour-coded terminal output with its tests |
+| Ridhima | [@ridhimaprasad5-gif](https://github.com/ridhimaprasad5-gif) | Contextual explanations in the main menu and the paginated results display |
 
 ## Contributing
 
@@ -370,3 +370,4 @@ Acknowledgements:
 - Developed as part of the Semester 3 **Object-Oriented Programming with C++** course.
 - Built with the C++ standard library, CMake, CTest and Ninja.
 - Reproducible demonstrations are documented in [docs/demo-scenarios.md](docs/demo-scenarios.md).
+
