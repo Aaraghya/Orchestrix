@@ -1,12 +1,60 @@
+<div align="center">
+
 # Orchestrix
 
 ### A Discrete-Event Simulator for Adaptive Data-Center Resource Allocation
 
-_**Orchestrix**_ is a C++17 command-line project developed for our Semester 3 Object-Oriented Programming with C++ course. It simulates job scheduling and resource allocation across heterogeneous data-center servers with different CPU, RAM, storage and GPU capacities. An integer-tick simulation clock drives arrivals, queueing, scheduling, execution and completion, then reports performance metrics for three allocation strategies.
+`C++17`   `CMake`   `Ninja`   `CTest`   `Standard library only`   `Interactive CLI`
+
+[Screenshots](#screenshots) / [Overview](#overview) / [Features](#features) / [Strategies](#allocation-strategies) / [How it works](#how-it-works) / [Getting started](#getting-started) / [Menu options](#menu-options) / [Team](#team)
+
+</div>
+
+***Orchestrix*** is a C++17 command-line project developed for our Semester 3 Object-Oriented Programming with C++ course (CSE 202, end-semester project). It simulates job scheduling and resource allocation across heterogeneous data-center servers with different CPU, RAM, storage and GPU capacities. An integer-tick simulation clock drives arrivals, queueing, scheduling, execution and completion, then reports performance metrics for three allocation strategies.
+
+| | |
+|---|---|
+| <a href="screenshots/menu.png"><img src="screenshots/menu.png" height="480" alt="Orchestrix main menu with the logo, workload settings and eight numbered options"></a> | <a href="screenshots/single-run.png"><img src="screenshots/single-run.png" height="480" alt="Results of a First Fit run with 18 allocated jobs in green and 2 rejected jobs in red"></a> |
+| *The main menu* | *One strategy run, paginated, with job statuses colour-coded* |
 
 ---
 
-## 1. Project Overview
+## Screenshots
+
+### Strategy comparison
+
+Every strategy runs on the same generated workload with fresh state, then the report compares them.
+
+| | |
+|---|---|
+| <a href="screenshots/comparison-top.png"><img src="screenshots/comparison-top.png" height="420" alt="Strategy comparison report header with the First Fit block: outcomes, wait time and utilization"></a> | <a href="screenshots/comparison.png"><img src="screenshots/comparison.png" height="420" alt="Load Balanced report block followed by the job outcome summary table for all three strategies"></a> |
+| *Report header and the First Fit block* | *The last block and the final job outcome summary* |
+
+### Configuring the workload
+
+Choose the job count, server count and seed. The same seed always reproduces the same workload.
+
+[![Workload configuration prompts for job count, server count and seed](screenshots/configure.png)](screenshots/configure.png)
+
+### Server status over time
+
+Shows how available CPU, RAM, storage and GPU change on each server as jobs start and finish.
+
+[![Server resource status tables for each tick, with GPU, Compute and Storage servers in different colours](screenshots/server-status.png)](screenshots/server-status.png)
+
+### Event log filtering
+
+Filter the simulation event log by event type, here showing only rejected jobs.
+
+[![Event log filtered to rejected jobs, listing the tick, job and reason](screenshots/event-log.png)](screenshots/event-log.png)
+
+### Automated tests
+
+[![CTest output showing all Orchestrix tests passing](screenshots/tests.png)](screenshots/tests.png)
+
+---
+
+## Overview
 
 Orchestrix models a small data center as a set of servers that own finite resources. Jobs arrive at known ticks, declare their resource requirements and duration, wait in a FIFO queue, and are placed on a compatible server by one of three allocation strategies. When a job finishes, its resources are released and become available to waiting jobs.
 
@@ -14,39 +62,78 @@ The simulator is deterministic for a given workload configuration and seed. The 
 
 The project is intentionally a single-threaded, standard-library-only C++ application. It has no GUI, database, network layer or external runtime dependencies.
 
-## 2. Features
+## Features
 
-- Domain model for jobs, resource requirements, and Compute, GPU and Storage servers.
-- Atomic resource reservation and release with over-allocation and over-release protection.
-- First Fit, Best Fit and Load Balanced allocation with deterministic tie-breaking.
-- Integer-tick simulation with FIFO queueing, permanent rejection of impossible jobs and a tick-limit safeguard.
-- Reproducible synthetic workload generation from `std::mt19937` using separate RNG streams for servers and jobs.
-- Paginated results screen for single-strategy runs: 20 allocation records per page with `N` / `P` / `Q` navigation.
-- Strategy comparison on an identical workload with fresh state for every run, plus a compact job-outcome summary table.
-- Metrics for job outcomes, completion and rejection rates, average waiting time, throughput and resource-time utilization.
-- Reconstructed server resource status display showing how available CPU, RAM, storage and GPU change during a run.
-- Event-log filtering for job arrivals, starts, completions and rejections.
-- Interactive ASCII command-line interface with 8 menu options and input validation.
+- **Domain model:** jobs, resource requirements, and Compute, GPU and Storage servers.
+- **Safe resource accounting:** atomic reservation and release, with over-allocation and over-release protection.
+- **Three allocation strategies:** First Fit, Best Fit and Load Balanced, with deterministic tie-breaking.
+- **Discrete-event engine:** integer ticks, FIFO queueing, permanent rejection of impossible jobs and a tick-limit safeguard.
+- **Reproducible workloads:** generated from `std::mt19937`, with separate RNG streams for servers and jobs.
+- **Paginated results:** 20 allocation records per page, with `N` / `P` / `Q` navigation.
+- **Fair strategy comparison:** the same workload and fresh state for every run, plus a compact job-outcome summary table.
+- **Metrics:** job outcomes, completion and rejection rates, average waiting time, throughput and resource-time utilization.
+- **Server status timeline:** reconstructs how available CPU, RAM, storage and GPU change during a run.
+- **Event-log filtering:** job arrivals, starts, completions and rejections.
+- **Colour-coded interactive CLI:** 8 menu options, input validation, and colour that switches off for piped output.
 
-## 3. Allocation Strategies
+## Allocation Strategies
 
 All strategies receive the same `DataCenter` and are asked to place a `Job`. A strategy only selects a server; the `Scheduler` performs the atomic resource reservation after selection.
 
 | Strategy | Selection rule | Tie-breaking |
 |---|---|---|
-| **First Fit** | Iterate servers in data-center insertion order and choose the first server that is available, type-compatible and has enough available resources. | Insertion order — the first match wins. |
-| **Best Fit** | For every compatible server, compute a score as the sum of `(available − required) / capacity` over each resource dimension the job requests. Choose the smallest score, i.e. the server that would be left with the least proportional free space. | Lexicographically smaller server ID. |
-| **Load Balanced** | For every compatible server, compute the average projected utilization `(allocated + required) / capacity` over all dimensions with positive capacity. Choose the lowest projected utilization. | Lexicographically smaller server ID. |
+| **First Fit** | Walk the servers in insertion order and take the first one that is available, type-compatible and has enough free resources. | Insertion order: the first match wins. |
+| **Best Fit** | Score each compatible server as the sum of `(available − required) / capacity` over the resources the job requests. The lowest score wins, meaning the server left with the least proportional free space. | Lexicographically smaller server ID. |
+| **Load Balanced** | Compute each compatible server's average projected utilization `(allocated + required) / capacity` over every dimension with positive capacity. The lowest wins. | Lexicographically smaller server ID. |
 
 A server is compatible only when it is available and its type accepts the job:
 
-- `ComputeServer` accepts any workload that fits its capacity.
-- `GPUServer` accepts only jobs with `gpu > 0`.
-- `StorageServer` accepts only jobs with `storage > 0`.
+| Server type | Accepts |
+|---|---|
+| `ComputeServer` | Any workload that fits its capacity |
+| `GPUServer` | Only jobs with `gpu > 0` |
+| `StorageServer` | Only jobs with `storage > 0` |
 
-A job that cannot fit on any compatible server at its arrival tick is rejected only if no server could ever hold it based on total capacity and type. Temporarily full servers do not cause permanent rejection; the job waits and is retried on later ticks.
+A job that cannot fit on any compatible server at its arrival tick is rejected only if no server could ever hold it, judged by total capacity and type. A temporarily full server does not cause a permanent rejection: the job waits and is retried on later ticks.
 
-## 4. Architecture
+### Example comparison
+
+The same workload (20 jobs, 5 servers, seed 84) run through all three strategies:
+
+| Metric | First Fit | Best Fit | Load Balanced |
+|---|---:|---:|---:|
+| Elapsed ticks | 59 | 59 | 62 |
+| Completed / rejected | 20 / 0 | 20 / 0 | 20 / 0 |
+| Average wait time | 0.500 | 0.250 | 0.650 |
+| Throughput (jobs/tick) | 0.339 | 0.339 | 0.323 |
+
+On this workload Best Fit had the shortest average wait and Load Balanced took the most ticks to finish. Other seeds and workloads can give different results, which is why the comparison mode exists.
+
+## How it works
+
+### Components
+
+| Layer | Classes | Responsibility |
+|---|---|---|
+| Model | `ResourceRequirements`, `Job`, `Server`, `DataCenter` | Describe jobs, the four resource dimensions and the pool of servers |
+| Servers | `ComputeServer`, `GPUServer`, `StorageServer` | Share one accounting base class and add their own compatibility rule |
+| Strategies | `AllocationStrategy`, `FirstFit`, `BestFit`, `LoadBalanced` | Choose a server for a job; they never reserve resources themselves |
+| Scheduling | `Scheduler` | Asks the strategy for a server, then reserves resources atomically |
+| Simulation | `SimulationEngine`, `SimulationEvent`, `WorkloadGenerator` | Advance the tick clock, log events, generate reproducible workloads |
+| Analysis | `MetricsCollector`, `SimulationMetrics`, `StrategyComparison` | Derive metrics from a finished run and compare strategies on identical input |
+| Presentation | `ReportGenerator`, `Terminal.h`, `src/main.cpp` | Format every report, add colour, and run the interactive menu |
+
+### Object-oriented design
+
+| Concept | Where | How it is used |
+|---|---|---|
+| Encapsulation | `Server` | Owns its capacity and allocation. "Available" is computed as total minus allocated, and a failed reserve or release throws without changing anything. |
+| Inheritance | `Server` → `ComputeServer`, `GPUServer`, `StorageServer` | Derived servers inherit all accounting and only add which jobs they accept. |
+| Polymorphism | `AllocationStrategy` → `FirstFit`, `BestFit`, `LoadBalanced` | `Scheduler` calls `select()` through the base interface and never knows which strategy it holds. |
+| Abstraction | `AllocationStrategy`, `Server::canRunJob()` | Pure virtual functions hide the selection and compatibility rules behind a small interface. |
+| Separation of concerns | `MetricsCollector`, `ReportGenerator` | Stateless classes that derive or format results without touching simulation state. |
+
+### Execution flow
 
 ```mermaid
 flowchart TD
@@ -99,56 +186,83 @@ The engine advances one tick at a time and performs a fixed sequence:
 
 `MetricsCollector` is stateless and reads the finished engine plus the data center. It reconstructs allocation intervals from `JOB_STARTED` and `RESOURCE_RELEASED` events. `ReportGenerator` is also stateless and formats all console output: paginated results, comparison reports, filtered event logs and server-status timelines.
 
-## 5. Technology Stack
+### Project structure
 
-- **Language:** C++17 (no compiler-specific extensions)
-- **Build system:** CMake 3.20 or newer
-- **Generator:** Ninja (recommended) or any CMake generator
-- **Testing:** CTest with self-contained C++ test executables
-- **Libraries:** C++ standard library only
-- **Warnings:** `/W4` on MSVC, `-Wall -Wextra -Wpedantic` elsewhere
-
-The verified development toolchain is GCC 16.1.0 (MSYS2 UCRT64), CMake 4.3.3 and Ninja 1.13.2 on Windows.
-
-## 6. Prerequisites and Installation
-
-You need:
-
-- A C++17 compiler (GCC, Clang or MSVC).
-- CMake 3.20 or newer.
-- Ninja is recommended but optional.
-- Git to clone the repository.
-
-On Windows, the verified setup uses the MSYS2 UCRT64 environment. Install the toolchain from an MSYS2 UCRT64 shell:
-
-```bash
-pacman -S --needed mingw-w64-ucrt-x86_64-gcc \
-                   mingw-w64-ucrt-x86_64-cmake \
-                   mingw-w64-ucrt-x86_64-ninja
+```
+Orchestrix/
+├── CMakeLists.txt          # build and test configuration
+├── README.md
+├── screenshots/            # images used in this README
+├── docs/
+│   ├── architecture.md     # components and execution flow
+│   └── demo-scenarios.md   # reproducible demo walkthroughs
+├── include/                # headers: model, strategies, engine, reports, Terminal.h
+├── src/                    # implementations and main.cpp (the CLI)
+└── tests/                  # milestone tests, pagination, terminal and CLI smoke tests
 ```
 
-Then clone the repository:
+## Technology Stack
+
+| | |
+|---|---|
+| **Language** | C++17, no compiler-specific extensions |
+| **Build system** | CMake 3.20 or newer, with Ninja recommended |
+| **Testing** | CTest with self-contained C++ test executables |
+| **Libraries** | C++ standard library only |
+| **Warnings** | `/W4` on MSVC, `-Wall -Wextra -Wpedantic` elsewhere |
+| **Verified with** | GCC 13.3 on Ubuntu, and GCC 15.2 and 16.1 with CMake 4.x on Windows (MSYS2 UCRT64) |
+
+## Getting started
+
+### Prerequisites
+
+- A C++17 compiler (GCC, Clang or MSVC)
+- CMake 3.20 or newer
+- Ninja (recommended, optional)
+- Git
+
+### Install and run
+
+**Windows (MSYS2 UCRT64)**
+
+1. Install [MSYS2](https://www.msys2.org) and open the **MSYS2 UCRT64** shell from the Start menu.
+2. Install the toolchain:
+   ```bash
+   pacman -S --needed mingw-w64-ucrt-x86_64-gcc \
+                      mingw-w64-ucrt-x86_64-cmake \
+                      mingw-w64-ucrt-x86_64-ninja git
+   ```
+3. Clone the repository:
+   ```bash
+   git clone https://github.com/Aaraghya/Orchestrix.git
+   cd Orchestrix
+   ```
+4. Build:
+   ```bash
+   cmake -S . -B build -G Ninja
+   cmake --build build
+   ```
+5. Run:
+   ```bash
+   ./build/orchestrix.exe
+   ```
+
+**Linux and macOS**
+
+Install a C++17 compiler, CMake, Ninja and Git with your package manager (for example `sudo apt install g++ cmake ninja-build git`), then:
 
 ```bash
 git clone https://github.com/Aaraghya/Orchestrix.git
 cd Orchestrix
-```
-
-On Linux or macOS, install a C++17 compiler and CMake through your package manager; no project-specific dependencies are required.
-
-## 7. Build Instructions
-
-From the repository root in the MSYS2 UCRT64 shell:
-
-```bash
 cmake -S . -B build -G Ninja
 cmake --build build
-ctest --test-dir build --output-on-failure
+./build/orchestrix
 ```
 
-The executable is produced at `build/orchestrix.exe` on Windows and `build/orchestrix` on POSIX systems. Omit `-G Ninja` to use the platform default generator.
+Omit `-G Ninja` to use your platform's default generator. To rebuild from scratch, delete the `build/` directory and run the configure step again.
 
-From Windows PowerShell with explicit toolchain paths:
+<details>
+<summary>Windows PowerShell with explicit toolchain paths</summary>
 
 ```powershell
 C:\msys64\ucrt64\bin\cmake.exe -S . -B build -G Ninja
@@ -157,16 +271,45 @@ C:\msys64\ucrt64\bin\ctest.exe --test-dir build --output-on-failure
 .\build\orchestrix.exe
 ```
 
-To rebuild from scratch, remove the `build/` directory and run the configure step again.
+</details>
 
-## 9. Running Orchestrix
-
-Start the interactive simulator:
+### Run the tests
 
 ```bash
-./build/orchestrix.exe      # Windows
-./build/orchestrix          # Linux / macOS
+ctest --test-dir build --output-on-failure
 ```
+
+All tests should pass.
+
+### Menu options
+
+| Option | What it does |
+|---|---|
+| `1` | Run the simulation with **First Fit** and show paginated results |
+| `2` | Run the simulation with **Best Fit** |
+| `3` | Run the simulation with **Load Balanced** |
+| `4` | Compare all three strategies on the same generated workload |
+| `5` | Configure the workload: job count (1 to 1000), server count (1 to 100) and seed |
+| `6` | Show the server status timeline for a First Fit run |
+| `7` | Filter the event log by arrivals, starts, completions or rejections |
+| `8` | Exit |
+
+On the paginated screen, `N` shows the next page, `P` the previous page and `Q` returns to the menu. The default workload is 20 jobs, 5 servers and seed 42.
+
+### Try it
+
+Settings persist between menu choices, so each demo sets them first. Every demo is reproducible because the seed is fixed.
+
+| Goal | Keys | What to notice |
+|---|---|---|
+| One strategy run | `1`, then `Q` | 18 jobs allocated, 2 rejected |
+| Compare strategies | `5`, Enter, Enter, `84`, `4` | Different waiting times on the same workload |
+| Overloaded data center | `5`, `50`, `1`, `42`, `4` | 11 completed, 39 rejected, GPU shown as `N/A` |
+| Reproducibility | `5`, `12`, `4`, `123`, `1`, `Q` | 5 allocated, 7 rejected; rerun it for identical rows, then try seed `124` for 11 and 1 |
+| Server status | `5`, `6`, `3`, `7`, `6` | Resources taken at each start and restored at each release |
+| Event filtering | `5`, `20`, `5`, `42`, `7`, `4` | Two rejections: `job-15` at tick 12 and `job-4` at tick 13 |
+
+More walkthroughs are in [docs/demo-scenarios.md](docs/demo-scenarios.md).
 
 ### Colour output
 
@@ -180,9 +323,42 @@ When Orchestrix runs in a terminal, the output is colour-coded: headings in cyan
 
 The colour logic lives in `include/Terminal.h` and is covered by `tests/test_terminal.cpp`.
 
-## 10. Contributing
+### Troubleshooting
 
-1. Fork the repository and create a focused branch, for example `feature/my-change`.
+| Problem | Fix |
+|---|---|
+| On Windows, `ctest` reports `Process not started` | The new test programs were probably blocked while being scanned. Run `ctest --test-dir build --rerun-failed --output-on-failure`. |
+| No colour appears | Run `ORCHESTRIX_COLOR=always ./build/orchestrix.exe`. |
+| `cmd` or PowerShell cannot start `orchestrix.exe` because a DLL is missing | Start it from the UCRT64 shell, or add `C:\msys64\ucrt64\bin` to `PATH` in that window. |
+| `pacman` reports download timeouts | Run the command again; it falls back to other mirrors. |
+
+## Limitations
+
+Orchestrix is a local simulation. These things are intentionally not part of the current build:
+
+- A separate `ResourceManager` class (reservation and release live in the server operations)
+- Server failure and recovery simulation, and job migration after failures
+- CSV report export
+- Manual job entry (the CLI uses generated workloads)
+- Energy-aware scheduling
+- Real cloud infrastructure integration or distributed execution
+- A graphical user interface
+
+The single-run results screen shows `Average allocation time` as `N/A`. Waiting time is reported in the strategy comparison instead.
+
+## Team
+
+Built for CSE 202 (Object-Oriented Programming with C++), Semester 3 end-semester project.
+
+| Contributor | GitHub | Contributions |
+|---|---|---|
+| Aaraghya | [@Aaraghya](https://github.com/Aaraghya) | Project foundation and the core simulator: domain model, allocation strategies and scheduler, simulation engine, metrics collection, the CLI, and the architecture and demo documentation |
+| gay3-dumb | [@gay3-dumb](https://github.com/gay3-dumb) | Event-log filtering, the job outcome summary table, the server status display, README updates for those menu options, and the colour-coded terminal output with its tests |
+| ridhimaprasad5-gif | [@ridhimaprasad5-gif](https://github.com/ridhimaprasad5-gif) | Contextual explanations in the main menu and the paginated results display |
+
+## Contributing
+
+1. Create a focused branch, for example `feature/my-change`. Collaborators can push it directly; everyone else can fork the repository first.
 2. Add or update tests for meaningful behavior and edge cases.
 3. Build and run the full test suite locally.
 4. Open a pull request describing the change, the motivation, and the tests run.
