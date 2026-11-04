@@ -14,7 +14,7 @@
 
 | | |
 |---|---|
-| [![Orchestrix main menu with the logo, workload settings and eight numbered options](screenshots/menu.png)](screenshots/menu.png) | [![Results of a First Fit run with 18 allocated jobs in green and 2 rejected jobs in red](screenshots/single-run.png)](screenshots/single-run.png) |
+| <a href="screenshots/menu.png"><img src="screenshots/menu.png" height="480" alt="Orchestrix main menu with the logo, workload settings and eight numbered options"></a> | <a href="screenshots/single-run.png"><img src="screenshots/single-run.png" height="480" alt="Results of a First Fit run with 18 allocated jobs in green and 2 rejected jobs in red"></a> |
 | *The main menu* | *One strategy run, paginated, with job statuses colour-coded* |
 
 ---
@@ -27,7 +27,7 @@ Every strategy runs on the same generated workload with fresh state, then the re
 
 | | |
 |---|---|
-| [![Strategy comparison report header with the First Fit block: outcomes, wait time and utilization](screenshots/comparison-top.png)](screenshots/comparison-top.png) | [![Load Balanced report block followed by the job outcome summary table for all three strategies](screenshots/comparison.png)](screenshots/comparison.png) |
+| <a href="screenshots/comparison-top.png"><img src="screenshots/comparison-top.png" height="420" alt="Strategy comparison report header with the First Fit block: outcomes, wait time and utilization"></a> | <a href="screenshots/comparison.png"><img src="screenshots/comparison.png" height="420" alt="Load Balanced report block followed by the job outcome summary table for all three strategies"></a> |
 | *Report header and the First Fit block* | *The last block and the final job outcome summary* |
 
 ### Configuring the workload
