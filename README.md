@@ -1,8 +1,56 @@
+<div align="center">
+
 # Orchestrix
 
 ### A Discrete-Event Simulator for Adaptive Data-Center Resource Allocation
 
-_**Orchestrix**_ is a C++17 command-line project developed for our Semester 3 Object-Oriented Programming with C++ course. It simulates job scheduling and resource allocation across heterogeneous data-center servers with different CPU, RAM, storage and GPU capacities. An integer-tick simulation clock drives arrivals, queueing, scheduling, execution and completion, then reports performance metrics for three allocation strategies.
+`C++17`   `CMake`   `Ninja`   `CTest`   `Standard library only`   `Interactive CLI`
+
+[Screenshots](#screenshots) / [Overview](#1-project-overview) / [Features](#2-features) / [Strategies](#3-allocation-strategies) / [Architecture](#4-architecture) / [Getting started](#6-prerequisites-and-installation) / [Running](#9-running-orchestrix)
+
+</div>
+
+***Orchestrix*** is a C++17 command-line project developed for our Semester 3 Object-Oriented Programming with C++ course (CSE 202, end-semester project). It simulates job scheduling and resource allocation across heterogeneous data-center servers with different CPU, RAM, storage and GPU capacities. An integer-tick simulation clock drives arrivals, queueing, scheduling, execution and completion, then reports performance metrics for three allocation strategies.
+
+| | |
+|---|---|
+| [![Orchestrix main menu with the logo, workload settings and eight numbered options](screenshots/menu.png)](screenshots/menu.png) | [![Results of a First Fit run with 18 allocated jobs in green and 2 rejected jobs in red](screenshots/single-run.png)](screenshots/single-run.png) |
+| *The main menu* | *One strategy run, paginated, with job statuses colour-coded* |
+
+---
+
+## Screenshots
+
+### Strategy comparison
+
+Every strategy runs on the same generated workload with fresh state, then the report compares them.
+
+| | |
+|---|---|
+| [![Strategy comparison report header with the First Fit block: outcomes, wait time and utilization](screenshots/comparison-top.png)](screenshots/comparison-top.png) | [![Load Balanced report block followed by the job outcome summary table for all three strategies](screenshots/comparison.png)](screenshots/comparison.png) |
+| *Report header and the First Fit block* | *The last block and the final job outcome summary* |
+
+### Configuring the workload
+
+Choose the job count, server count and seed. The same seed always reproduces the same workload.
+
+[![Workload configuration prompts for job count, server count and seed](screenshots/configure.png)](screenshots/configure.png)
+
+### Server status over time
+
+Shows how available CPU, RAM, storage and GPU change on each server as jobs start and finish.
+
+[![Server resource status tables for each tick, with GPU, Compute and Storage servers in different colours](screenshots/server-status.png)](screenshots/server-status.png)
+
+### Event log filtering
+
+Filter the simulation event log by event type, here showing only rejected jobs.
+
+[![Event log filtered to rejected jobs, listing the tick, job and reason](screenshots/event-log.png)](screenshots/event-log.png)
+
+### Automated tests
+
+[![CTest output showing all Orchestrix tests passing](screenshots/tests.png)](screenshots/tests.png)
 
 ---
 
